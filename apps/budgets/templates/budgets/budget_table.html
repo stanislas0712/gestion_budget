@@ -106,10 +106,10 @@
 {# Boutons operateur : soumettre (seulement si budget modifiable et pas admin) #}
 {% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
 <div class="d-flex justify-content-end gap-2 mt-4 mb-5">
-    <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload();">
+    <button type="button" class="btn btn-xero-outline" onclick="window.location.reload();">
         <i class="bi bi-x-circle me-1"></i>Annuler les modifications
     </button>
-    <a href="{% url 'budgets:soumettre_budget' budget.uuid %}" class="btn btn-success"
+    <a href="{% url 'budgets:soumettre_budget' budget.uuid %}" class="btn btn-xero"
        id="btn-soumettre"
        onclick="return verifierAvantSoumission();">
         <i class="bi bi-send me-1"></i>Soumettre le budget
@@ -121,34 +121,30 @@
 {% if user.is_staff or user.is_superuser %}
     {% if budget.statut == 'soumis' %}
     <div class="d-flex justify-content-center gap-3 mt-4 mb-5">
-        <a href="{% url 'budgets:approuver_budget' budget.uuid %}" class="btn btn-success btn-lg"
+        <a href="{% url 'budgets:approuver_budget' budget.uuid %}" class="btn btn-success"
            onclick="return confirm('Confirmer la validation de ce budget ?');">
-            <i class="bi bi-check-circle-fill me-2"></i>Valider le budget
+            <i class="bi bi-check-circle-fill me-1"></i>Valider
         </a>
-        <a href="{% url 'budgets:demander_modification' budget.uuid %}" class="btn btn-warning btn-lg">
-            <i class="bi bi-pencil-square me-2"></i>Demander modification
+        <a href="{% url 'budgets:demander_modification' budget.uuid %}" class="btn btn-warning">
+            <i class="bi bi-pencil-square me-1"></i>Demander modification
         </a>
-        <a href="{% url 'budgets:rejeter_budget' budget.uuid %}" class="btn btn-danger btn-lg"
+        <a href="{% url 'budgets:rejeter_budget' budget.uuid %}" class="btn btn-danger"
            onclick="return confirm('Confirmer le rejet de ce budget ?');">
-            <i class="bi bi-x-circle-fill me-2"></i>Rejeter le budget
+            <i class="bi bi-x-circle-fill me-1"></i>Rejeter
         </a>
     </div>
     {% elif budget.statut == 'rejete' %}
     <div class="text-center mt-4 mb-5">
-        <div class="alert alert-danger d-inline-flex align-items-center px-5 py-3">
-            <i class="bi bi-x-circle-fill fs-3 me-3"></i>
-            <div>
-                <strong class="fs-5">Ce budget a ete rejete</strong>
-            </div>
+        <div class="alert alert-danger d-inline-flex align-items-center px-4 py-2">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Ce budget a ete rejete</strong>
         </div>
     </div>
     {% elif budget.statut == 'approuve' %}
     <div class="text-center mt-4 mb-5">
-        <div class="alert alert-success d-inline-flex align-items-center px-5 py-3">
-            <i class="bi bi-check-circle-fill fs-3 me-3"></i>
-            <div>
-                <strong class="fs-5">Ce budget a ete approuve</strong>
-            </div>
+        <div class="alert alert-success d-inline-flex align-items-center px-4 py-2">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Ce budget a ete approuve</strong>
         </div>
     </div>
     {% endif %}

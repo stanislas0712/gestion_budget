@@ -1,85 +1,171 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Plateforme Budgets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f4f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .login-topbar {
+            background: #13353b;
+            padding: 14px 24px;
+        }
+        .login-topbar .brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .login-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .login-card {
+            background: #fff;
+            border: 1px solid #dce0e3;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem 2rem 2rem;
+        }
+        .login-card h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .login-card .subtitle {
+            color: #6b778c;
+            font-size: 0.85rem;
+            margin-bottom: 1.8rem;
+        }
+        .login-card .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .login-card .form-control {
+            border: 1px solid #dce0e3;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            padding: 0.55rem 0.75rem;
+        }
+        .login-card .form-control:focus {
+            border-color: #00b4c5;
+            box-shadow: 0 0 0 2px rgba(0, 180, 197, 0.15);
+        }
+        .btn-login {
+            background: #00b4c5;
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .btn-login:hover { background: #009dac; color: #fff; }
+        .login-footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #6b778c;
+        }
+        .login-footer a {
+            color: #00b4c5;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .login-footer a:hover { text-decoration: underline; }
+        .alert-login {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #c9372c;
+            border-radius: 4px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.82rem;
+            margin-bottom: 1.2rem;
+        }
+        .page-footer {
+            border-top: 1px solid #dce0e3;
+            background: #fff;
+            padding: 0.8rem 0;
+            text-align: center;
+        }
+        .page-footer small { color: #6b778c; }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <script>window.location.href = "{% url 'budgets:dashboard' %}";</script>
+    {% endif %}
 
-{% block content %}
-{% if user.is_authenticated %}
-<script>window.location.href = "{% url 'budgets:dashboard' %}";</script>
-{% endif %}
-<div class="container">
-    <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
-        <div class="col-md-5">
-            <div class="card shadow-lg border-0">
-                <div class="card-header text-white py-4 budget-header-gradient text-center">
-                    <h3 class="mb-0">
-                        <i class="bi bi-lock-fill me-2"></i>Connexion
-                    </h3>
+    <div class="login-topbar">
+        <span class="brand">Plateforme Budgets</span>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h2>Connexion</h2>
+            <p class="subtitle">Connectez-vous a votre compte</p>
+
+            {% if form.errors %}
+            <div class="alert-login">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                Nom d'utilisateur ou mot de passe incorrect.
+            </div>
+            {% endif %}
+
+            {% if next %}
+                {% if user.is_authenticated %}
+                <div class="alert-login">
+                    <i class="bi bi-shield-exclamation me-1"></i>
+                    Vous n'avez pas la permission d'acceder a cette page.
                 </div>
-                <div class="card-body p-5">
-                    {% if form.errors %}
-                    <div class="alert alert-danger" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Erreur !</strong> Nom d'utilisateur ou mot de passe incorrect.
-                    </div>
-                    {% endif %}
+                {% endif %}
+            {% endif %}
 
-                    {% if next %}
-                        {% if user.is_authenticated %}
-                        <div class="alert alert-warning" role="alert">
-                            Vous n'avez pas la permission d'accéder à cette page.
-                        </div>
-                        {% endif %}
-                    {% endif %}
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
 
-                    <form method="post" action="{% url 'login' %}">
-                        {% csrf_token %}
-
-                        <div class="mb-4">
-                            <label for="id_username" class="form-label fw-bold">
-                                <i class="bi bi-person-fill me-1"></i>Nom d'utilisateur
-                            </label>
-                            <input type="text"
-                                   name="username"
-                                   class="form-control form-control-lg"
-                                   id="id_username"
-                                   placeholder="Entrez votre nom d'utilisateur"
-                                   required
-                                   autofocus>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="id_password" class="form-label fw-bold">
-                                <i class="bi bi-key-fill me-1"></i>Mot de passe
-                            </label>
-                            <input type="password"
-                                   name="password"
-                                   class="form-control form-control-lg"
-                                   id="id_password"
-                                   placeholder="Entrez votre mot de passe"
-                                   required>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-box-arrow-in-right me-2"></i>Se connecter
-                            </button>
-                        </div>
-
-                        <input type="hidden" name="next" value="{{ next }}" />
-                    </form>
+                <div class="mb-3">
+                    <label for="id_username" class="form-label">Nom d'utilisateur</label>
+                    <input type="text" name="username" class="form-control" id="id_username"
+                           placeholder="Entrez votre identifiant" required autofocus>
                 </div>
-                <div class="card-footer text-center py-3">
-                    <span class="text-muted">Vous n'avez pas de compte ?</span>
-                    <a href="{% url 'inscription' %}" class="fw-bold ms-1">
-                        <i class="bi bi-person-plus me-1"></i>Créer un compte
-                    </a>
+
+                <div class="mb-4">
+                    <label for="id_password" class="form-label">Mot de passe</label>
+                    <input type="password" name="password" class="form-control" id="id_password"
+                           placeholder="Entrez votre mot de passe" required>
                 </div>
+
+                <button type="submit" class="btn-login">Se connecter</button>
+                <input type="hidden" name="next" value="{{ next }}" />
+            </form>
+
+            <div class="login-footer mt-4">
+                Pas encore de compte ? <a href="{% url 'inscription' %}">Creer un compte</a>
             </div>
         </div>
     </div>
-</div>
 
-<style>
-    .budget-header-gradient {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-</style>
-{% endblock %}
+    <footer class="page-footer">
+        <small>Plateforme de Gestion Budgetaire &copy; 2026</small>
+    </footer>
+</body>
+</html>

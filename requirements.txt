@@ -8,7 +8,7 @@ django-htmx>=1.18
 # API & HTTP
 requests>=2.31
 
-# Async & background tasks (optionnel au début)
+# Async & background tasks
 celery>=5.3
 redis>=5.0
 

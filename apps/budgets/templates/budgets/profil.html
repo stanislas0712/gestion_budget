@@ -7,44 +7,46 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
+            <div class="mb-3">
+                <a href="{% url 'budgets:dashboard' %}" class="btn btn-xero-outline btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Retour
+                </a>
+            </div>
+
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="bi bi-person-circle me-2"></i>Mon Profil
-                    </h4>
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold">Mon Profil</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     {% if messages %}
                         {% for message in messages %}
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                             {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" title="Fermer"></button>
                         </div>
                         {% endfor %}
                     {% endif %}
 
-                    <div class="row mb-4">
-                        <div class="col-md-12 text-center mb-3">
-                            <i class="bi bi-person-circle" style="font-size: 80px; color: #667eea;"></i>
-                        </div>
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-circle" style="font-size: 64px; color: var(--xero-muted);"></i>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-person me-2"></i>Nom d'utilisateur :</strong>
+                            <small class="text-muted d-block">Nom d'utilisateur</small>
                         </div>
                         <div class="col-md-8">
-                            <span class="badge bg-primary">{{ user.username }}</span>
+                            <strong>{{ user.username }}</strong>
                         </div>
                     </div>
 
                     {% if user.first_name or user.last_name %}
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-card-text me-2"></i>Nom complet :</strong>
+                            <small class="text-muted d-block">Nom complet</small>
                         </div>
                         <div class="col-md-8">
-                            {{ user.first_name }} {{ user.last_name }}
+                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
                         </div>
                     </div>
                     {% endif %}
@@ -52,61 +54,56 @@
                     {% if user.email %}
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-envelope me-2"></i>Email :</strong>
+                            <small class="text-muted d-block">Email</small>
                         </div>
                         <div class="col-md-8">
-                            {{ user.email }}
+                            <strong>{{ user.email }}</strong>
                         </div>
                     </div>
                     {% endif %}
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-shield-check me-2"></i>Type de compte :</strong>
+                            <small class="text-muted d-block">Type de compte</small>
                         </div>
                         <div class="col-md-8">
                             {% if user.is_staff or user.is_superuser %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-star-fill me-1"></i>Administrateur
-                                </span>
+                                <span class="badge-admin">Administrateur</span>
                             {% else %}
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-person me-1"></i>Operateur
-                                </span>
+                                <span class="badge bg-secondary badge-statut">Operateur</span>
                             {% endif %}
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-calendar-check me-2"></i>Membre depuis :</strong>
+                            <small class="text-muted d-block">Membre depuis</small>
                         </div>
                         <div class="col-md-8">
-                            {{ user.date_joined|date:"d/m/Y à H:i" }}
+                            <strong>{{ user.date_joined|date:"d/m/Y" }}</strong>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <strong><i class="bi bi-clock-history me-2"></i>Dernière connexion :</strong>
+                            <small class="text-muted d-block">Derniere connexion</small>
                         </div>
                         <div class="col-md-8">
+                            <strong>
                             {% if user.last_login %}
-                                {{ user.last_login|date:"d/m/Y à H:i" }}
+                                {{ user.last_login|date:"d/m/Y a H:i" }}
                             {% else %}
-                                Jamais connecté
+                                Jamais connecte
                             {% endif %}
+                            </strong>
                         </div>
                     </div>
 
                     <hr class="my-4">
 
-                    <div class="d-grid gap-2">
-                        <a href="{% url 'budgets:changer_mot_de_passe' %}" class="btn btn-warning btn-lg">
-                            <i class="bi bi-key-fill me-2"></i>Changer mon mot de passe
-                        </a>
-                        <a href="{% url 'budgets:dashboard' %}" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-2"></i>Retour au tableau de bord
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'budgets:changer_mot_de_passe' %}" class="btn btn-xero">
+                            <i class="bi bi-key me-1"></i>Changer mon mot de passe
                         </a>
                     </div>
                 </div>
@@ -114,36 +111,21 @@
 
             {% if user.is_staff or user.is_superuser %}
             <div class="card shadow-sm mt-3">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">
-                        <i class="bi bi-gear-fill me-2"></i>Accès Administrateur
-                    </h5>
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">Acces Administrateur</h6>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">
-                        En tant qu'administrateur, vous avez accès à des fonctionnalités supplémentaires :
+                    <p class="text-muted small">
+                        En tant qu'administrateur, vous avez acces a des fonctionnalites supplementaires :
                     </p>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Voir tous les budgets sans recherche
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Modifier et supprimer n'importe quel budget
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Exporter les budgets (Excel, PDF, Word)
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Accès à l'interface d'administration Django
-                        </li>
+                    <ul class="list-unstyled small">
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Voir tous les budgets</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Valider, rejeter ou demander des modifications</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Exporter les budgets (Excel, PDF, Word)</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Filtrer par appel, filiere, localite</li>
                     </ul>
-                    <a href="/admin/" target="_blank" class="btn btn-dark">
-                        <i class="bi bi-gear-wide-connected me-2"></i>
-                        Accéder à l'Admin Django
+                    <a href="/manager/" target="_blank" class="btn btn-xero-outline btn-sm">
+                        <i class="bi bi-gear me-1"></i>Administration
                     </a>
                 </div>
             </div>

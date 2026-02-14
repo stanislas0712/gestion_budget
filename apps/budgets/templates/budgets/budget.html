@@ -3,158 +3,131 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
         <div>
-            <h2 class="mb-2">
-                <i class="bi bi-pencil-square me-2 text-primary"></i>{{ budget.titre_projet }}
-            </h2>
-            <span class="badge bg-gradient text-white px-3 py-2 budget-header-gradient">
-                <i class="bi bi-mortarboard me-1"></i>{{ budget.filiere }}
-            </span>
-        </div>
-        <div class="d-flex gap-2 align-items-center">
-            {# Badge de statut #}
-            {% if budget.statut == 'brouillon' %}
-                <span class="badge bg-secondary"><i class="bi bi-pencil me-1"></i>Brouillon</span>
-            {% elif budget.statut == 'soumis' %}
-                <span class="badge bg-primary"><i class="bi bi-hourglass-split me-1"></i>Soumis</span>
-            {% elif budget.statut == 'modification_autorisee' %}
-                <span class="badge bg-warning text-dark"><i class="bi bi-pencil-square me-1"></i>Modification demandée</span>
-            {% elif budget.statut == 'approuve' %}
-                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approuvé</span>
-            {% elif budget.statut == 'rejete' %}
-                <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Rejeté</span>
-            {% endif %}
-
-            {# Bouton export Admin (reste en haut) #}
-            {% if user.is_staff or user.is_superuser %}
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-download me-1"></i>Exporter
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="{% url 'budgets:export_excel' budget.uuid %}">
-                            <i class="bi bi-file-earmark-excel text-success me-2"></i>Format Excel (.xlsx)
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'budgets:export_pdf' budget.uuid %}">
-                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Format PDF (.pdf)
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="{% url 'budgets:export_word' budget.uuid %}">
-                            <i class="bi bi-file-earmark-word text-primary me-2"></i>Format Word (.docx)
-                        </a>
-                    </li>
-                </ul>
+            <h2 class="h4 fw-bold mb-2">{{ budget.titre_projet }}</h2>
+            <div class="d-flex align-items-center gap-2">
+                {% if budget.statut == 'brouillon' %}
+                    <span class="badge bg-secondary badge-statut">Brouillon</span>
+                {% elif budget.statut == 'soumis' %}
+                    <span class="badge bg-dark badge-statut">Soumis</span>
+                {% elif budget.statut == 'modification_autorisee' %}
+                    <span class="badge bg-warning text-dark badge-statut">Modification demandee</span>
+                {% elif budget.statut == 'approuve' %}
+                    <span class="badge bg-success badge-statut">Approuve</span>
+                {% elif budget.statut == 'rejete' %}
+                    <span class="badge bg-danger badge-statut">Rejete</span>
+                {% endif %}
+                {% if budget.filiere %}
+                    <span class="text-muted small">{{ budget.filiere }}</span>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
+        {% if user.is_staff or user.is_superuser %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-xero-outline btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i>Exporter
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'budgets:export_excel' budget.uuid %}">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Excel (.xlsx)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'budgets:export_pdf' budget.uuid %}">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>PDF (.pdf)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'budgets:export_word' budget.uuid %}">
+                        <i class="bi bi-file-earmark-word me-2"></i>Word (.docx)
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
     </div>
 
     {% include 'budgets/synthese_header.html' %}
 
-    {# Alerte A1 > 30% - toujours cachee, visible uniquement via JS lors de la soumission #}
+    {# Alerte A1 > 30% #}
     <div id="alerte-a1" class="alert alert-danger mb-4 d-none">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
         <strong>ATTENTION :</strong> A.1 (Matieres d'oeuvre) represente
         <span id="a1-pourcentage-value">0</span>% du budget total.
         <strong>Le maximum autorise est de 30%.</strong>
-        Le budget ne peut pas etre soumis tant que cette limite est depassee.
     </div>
 
-    {# Message appel termine - seulement si l'appel est expire ET le budget n'est pas en modification autorisee #}
     {% if not budget.appel_est_actif and budget.statut != 'modification_autorisee' %}
-    <div class="alert alert-danger mb-4">
-        <i class="bi bi-calendar-x me-2"></i>
-        <strong>La periode de l'appel a projet est terminee.</strong>
-        Ce budget ne peut plus etre modifie.
+    <div class="alert alert-light border mb-4 py-2">
+        <i class="bi bi-lock me-2 text-muted"></i>
+        La periode de l'appel a projet est terminee. Ce budget ne peut plus etre modifie.
         {% if budget.appel_a_projet %}
-            <br><small class="text-muted">Appel : {{ budget.appel_a_projet.nom }} - Date de fin : {{ budget.appel_a_projet.date_fin|date:"d/m/Y H:i" }}</small>
+            <br><small class="text-muted">{{ budget.appel_a_projet.nom }} &mdash; Fin : {{ budget.appel_a_projet.date_fin|date:"d/m/Y H:i" }}</small>
         {% endif %}
     </div>
     {% endif %}
 
-    {# Message statut verrouille - seulement si le budget ne peut PAS etre modifie et l'appel est encore actif #}
     {% if not budget.peut_etre_modifie and budget.appel_est_actif %}
-    <div class="alert alert-info mb-4">
-        <i class="bi bi-lock me-2"></i>
-        Ce budget ne peut plus etre modifie dans son etat actuel (<strong>{{ budget.get_statut_display }}</strong>).
+    <div class="alert alert-light border mb-4 py-2">
+        <i class="bi bi-lock me-2 text-muted"></i>
+        Ce budget ne peut plus etre modifie (statut : <strong>{{ budget.get_statut_display }}</strong>).
     </div>
     {% endif %}
 
-    {# Message pour l'opérateur quand l'admin demande une modification #}
     {% if budget.statut == 'modification_autorisee' %}
-    <div class="alert alert-warning mb-4">
-        <i class="bi bi-pencil-square me-2"></i>
-        <strong>Modification demandée par l'administrateur</strong>
+    <div class="alert alert-light border-start border-warning border-3 mb-4">
+        <strong>Modification demandee par l'administrateur</strong>
         {% if budget.motif_demande_modification %}
-        <div class="mt-2 bg-light p-3 rounded border">
-            <strong><i class="bi bi-chat-quote me-1"></i>Motif :</strong>
+        <div class="mt-2 bg-white p-3 rounded border small">
+            <strong>Motif :</strong>
             <p class="mb-0 mt-1">{{ budget.motif_demande_modification }}</p>
         </div>
         {% endif %}
-        <p class="mb-0 mt-2">Veuillez effectuer les modifications demandées puis soumettre à nouveau votre budget.</p>
+        <p class="mb-0 mt-2 small text-muted">Effectuez les modifications demandees puis soumettez a nouveau.</p>
     </div>
     {% endif %}
 
-    <div class="card mb-4 border-0 shadow-sm">
-        <div class="card-header bg-light border-0">
-            <h6 class="mb-0 text-uppercase fw-semibold text-secondary">
-                <i class="bi bi-info-circle me-2"></i>Informations du Projet
-            </h6>
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold text-uppercase small text-muted">Informations du projet</h6>
         </div>
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-building text-primary me-2 fs-5"></i>
-                        <div>
-                            <small class="text-muted d-block">Opérateur</small>
-                            <strong>{{ budget.operateur }}</strong>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Operateur</small>
+                    <strong>{{ budget.operateur }}</strong>
                 </div>
                 <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-people-fill text-success me-2 fs-5"></i>
-                        <div>
-                            <small class="text-muted d-block">Apprenants</small>
-                            <strong>{{ budget.total_apprenants }}</strong>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Apprenants</small>
+                    <strong>{{ budget.total_apprenants }}</strong>
                 </div>
                 <div class="col-md-3">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-calendar-event text-info me-2 fs-5"></i>
-                        <div>
-                            <small class="text-muted d-block">Sessions</small>
-                            <strong>{{ budget.nombre_sessions }}</strong>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Sessions</small>
+                    <strong>{{ budget.nombre_sessions }}</strong>
                 </div>
+                {% if budget.appel_a_projet %}
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Appel a projet</small>
+                    <strong>{{ budget.appel_a_projet.nom }}</strong>
+                </div>
+                {% endif %}
+                {% if budget.filiere %}
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Filiere</small>
+                    <strong>{{ budget.filiere }}</strong>
+                </div>
+                {% endif %}
                 {% if budget.metier %}
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-tools text-warning me-2 fs-5"></i>
-                        <div>
-                            <small class="text-muted d-block">Métier</small>
-                            <strong>{{ budget.metier }}</strong>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Metier</small>
+                    <strong>{{ budget.metier }}</strong>
                 </div>
                 {% endif %}
                 {% if budget.localite %}
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-geo-alt-fill text-danger me-2 fs-5"></i>
-                        <div>
-                            <small class="text-muted d-block">Localité</small>
-                            <strong>{{ budget.localite }}</strong>
-                        </div>
-                    </div>
+                    <small class="text-muted d-block">Localite</small>
+                    <strong>{{ budget.localite }}</strong>
                 </div>
                 {% endif %}
             </div>
@@ -169,23 +142,17 @@
 
 {% block extra_js %}
 <script>
-// Polling temps reel : detecte les changements de statut et recharge la page automatiquement
 (function() {
     const statutActuel = '{{ budget.statut }}';
     const budgetUuid = '{{ budget.uuid }}';
-
     function verifierStatut() {
         fetch(`/budgets/get-statut/${budgetUuid}/`)
             .then(r => r.json())
             .then(data => {
-                if (data.statut !== statutActuel) {
-                    location.reload();
-                }
+                if (data.statut !== statutActuel) location.reload();
             })
             .catch(() => {});
     }
-
-    // Verifier toutes les 5 secondes
     setInterval(verifierStatut, 5000);
 })();
 </script>

@@ -47,7 +47,7 @@ class InfosBudgetForm(forms.ModelForm):
             'appel_a_projet': forms.Select(attrs={'class': 'form-control'}),
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
             'operateur': forms.TextInput(attrs={'class': 'form-control'}),
-            'filiere': forms.TextInput(attrs={'class': 'form-control'}),
+            'filiere': forms.Select(attrs={'class': 'form-control'}),
             'metier': forms.Select(attrs={'class': 'form-control'}),
             'localite': forms.Select(attrs={'class': 'form-control'}),
             'total_apprenants': forms.NumberInput(attrs={'class': 'form-control'}),

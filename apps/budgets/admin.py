@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import (
     InfosBudget, SectionBudgetaire, LigneBudgetaire,
-    GroupeArticle, SousLigneArticle, Metier, Localite
+    GroupeArticle, SousLigneArticle, Metier, Localite, Filiere
 )
 
 # --- UTILISATEURS : toutes les sections visibles ---
@@ -42,6 +42,12 @@ class MetierAdmin(admin.ModelAdmin):
 
 @admin.register(Localite)
 class LocaliteAdmin(admin.ModelAdmin):
+    list_display = ('nom',)
+    search_fields = ('nom',)
+
+
+@admin.register(Filiere)
+class FiliereAdmin(admin.ModelAdmin):
     list_display = ('nom',)
     search_fields = ('nom',)
 
@@ -85,8 +91,8 @@ class InfosBudgetAdmin(admin.ModelAdmin):
     Vue principale du Budget
     """
     list_display = ('titre_projet', 'operateur', 'statut', 'cout_total_global', 'budget_demande_global', 'cout_par_apprenant', 'created_by')
-    list_filter = ('statut', 'appel_a_projet', 'filiere')
-    search_fields = ('titre_projet', 'operateur', 'filiere')
+    list_filter = ('statut', 'appel_a_projet', 'filiere', 'localite')
+    search_fields = ('titre_projet', 'operateur', 'filiere__nom')
     fieldsets = (
         ('Informations Générales', {
             'classes': ('wide',),

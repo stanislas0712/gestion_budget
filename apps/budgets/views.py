@@ -172,49 +172,83 @@ def get_appel_statut(request):
 
 @login_required
 def budget_dashboard(request):
+    from apps.projects.models import AppelAProjet
+    from .models import Filiere, Localite
+    from django.utils import timezone as tz
+
     query = request.GET.get('q')
+    filtre_appel = request.GET.get('appel')
+    filtre_filiere = request.GET.get('filiere')
+    filtre_localite = request.GET.get('localite')
 
     is_admin = request.user.is_staff or request.user.is_superuser
+    has_filters = query or filtre_appel or filtre_filiere or filtre_localite
 
     if is_admin:
-        # Admin : voit tous les budgets, avec ou sans recherche
-        if query:
-            budgets = InfosBudget.objects.filter(
-                Q(titre_projet__icontains=query) |
-                Q(operateur__icontains=query) |
-                Q(filiere__icontains=query) |
-                Q(localite__nom__icontains=query) |
-                Q(metier__nom__icontains=query)
-            ).order_by('-id')
+        # Admin : voit tous les budgets, avec ou sans recherche/filtre
+        if has_filters:
+            budgets = InfosBudget.objects.all()
+            if query:
+                budgets = budgets.filter(
+                    Q(titre_projet__icontains=query) |
+                    Q(operateur__icontains=query) |
+                    Q(filiere__nom__icontains=query) |
+                    Q(localite__nom__icontains=query) |
+                    Q(metier__nom__icontains=query)
+                )
+            if filtre_appel:
+                budgets = budgets.filter(appel_a_projet_id=filtre_appel)
+            if filtre_filiere:
+                budgets = budgets.filter(filiere_id=filtre_filiere)
+            if filtre_localite:
+                budgets = budgets.filter(localite_id=filtre_localite)
+            budgets = budgets.order_by('-id')
         else:
             budgets = InfosBudget.objects.all().order_by('-id')
     else:
-        # Opérateur : voit ses budgets UNIQUEMENT s'il fait une recherche
-        if query:
-            budgets = InfosBudget.objects.filter(
-                Q(created_by=request.user),
-                Q(titre_projet__icontains=query) |
-                Q(operateur__icontains=query) |
-                Q(filiere__icontains=query) |
-                Q(localite__nom__icontains=query) |
-                Q(metier__nom__icontains=query)
-            ).order_by('-id')
+        # Opérateur : voit ses budgets UNIQUEMENT s'il fait une recherche/filtre
+        if has_filters:
+            budgets = InfosBudget.objects.filter(created_by=request.user)
+            if query:
+                budgets = budgets.filter(
+                    Q(titre_projet__icontains=query) |
+                    Q(operateur__icontains=query) |
+                    Q(filiere__nom__icontains=query) |
+                    Q(localite__nom__icontains=query) |
+                    Q(metier__nom__icontains=query)
+                )
+            if filtre_appel:
+                budgets = budgets.filter(appel_a_projet_id=filtre_appel)
+            if filtre_filiere:
+                budgets = budgets.filter(filiere_id=filtre_filiere)
+            if filtre_localite:
+                budgets = budgets.filter(localite_id=filtre_localite)
+            budgets = budgets.order_by('-id')
         else:
             budgets = InfosBudget.objects.none()
 
     # Récupérer tous les appels à projet actifs
-    from apps.projects.models import AppelAProjet
-    from django.utils import timezone as tz
     now = tz.now()
     appels_actifs = AppelAProjet.objects.filter(
         date_debut__lte=now, date_fin__gte=now
     )
+
+    # Listes pour les filtres
+    tous_appels = AppelAProjet.objects.all().order_by('-date_debut')
+    toutes_filieres = Filiere.objects.all()
+    toutes_localites = Localite.objects.all()
 
     return render(request, 'budgets/dashboard.html', {
         'budgets': budgets,
         'query': query,
         'is_admin': is_admin,
         'appels_actifs': appels_actifs,
+        'tous_appels': tous_appels,
+        'toutes_filieres': toutes_filieres,
+        'toutes_localites': toutes_localites,
+        'filtre_appel': filtre_appel,
+        'filtre_filiere': filtre_filiere,
+        'filtre_localite': filtre_localite,
     })
 
 @login_required
@@ -345,7 +379,7 @@ def export_excel(request, uuid):
     ws[f'A{row}'] = "Opérateur:"
     ws[f'B{row}'] = str(budget.operateur)
     ws[f'E{row}'] = "Filière:"
-    ws[f'F{row}'] = budget.filiere
+    ws[f'F{row}'] = str(budget.filiere) if budget.filiere else ""
     row += 1
     ws[f'A{row}'] = "Apprenants:"
     ws[f'B{row}'] = budget.total_apprenants
@@ -531,7 +565,7 @@ def export_pdf(request, uuid):
 
     # Informations générales
     info_data = [
-        ["Opérateur:", str(budget.operateur), "Filière:", budget.filiere],
+        ["Opérateur:", str(budget.operateur), "Filière:", str(budget.filiere) if budget.filiere else ""],
         ["Apprenants:", str(budget.total_apprenants), "Sessions:", str(budget.nombre_sessions)],
     ]
 
@@ -695,7 +729,7 @@ def export_word(request, uuid):
     cells[0].text = 'Opérateur:'
     cells[1].text = str(budget.operateur)
     cells[2].text = 'Filière:'
-    cells[3].text = budget.filiere
+    cells[3].text = str(budget.filiere) if budget.filiere else ""
 
     cells = info_table.rows[1].cells
     cells[0].text = 'Apprenants:'
@@ -866,7 +900,7 @@ def soumettre_budget(request, uuid):
 
 Titre du projet: {budget.titre_projet}
 Opérateur: {budget.operateur}
-Filière: {budget.filiere}
+Filière: {budget.filiere if budget.filiere else 'Non spécifiée'}
 Soumis par: {budget.created_by.username if budget.created_by else 'Inconnu'}
 Date de soumission: {timezone.now().strftime('%d/%m/%Y %H:%M')}
 

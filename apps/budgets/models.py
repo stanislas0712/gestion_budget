@@ -20,6 +20,16 @@ class Metier(models.Model):
     def __str__(self):
         return self.nom
 
+class Filiere(models.Model):
+    nom = models.CharField(max_length=255, unique=True, verbose_name="Nom de la filière")
+
+    class Meta:
+        verbose_name = "Filière"
+        verbose_name_plural = "Filières"
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
 
 class Localite(models.Model):
     nom = models.CharField(max_length=255, unique=True, verbose_name="Nom de la localité")
@@ -64,7 +74,7 @@ class InfosBudget(models.Model):
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Créé par", related_name="budgets_crees")
     operateur = models.CharField(max_length=255, verbose_name="Opérateur ou Consortium")
     titre_projet = models.TextField(verbose_name="Titre du projet")
-    filiere = models.CharField(max_length=255, verbose_name="Filière de formation")
+    filiere = models.ForeignKey(Filiere, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Filière de formation", related_name="budgets")
     metier = models.ForeignKey(Metier, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Métier", related_name="budgets")
     localite = models.ForeignKey(Localite, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Localité", related_name="budgets")
 
