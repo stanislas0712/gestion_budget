@@ -136,31 +136,6 @@
             <form method="post">
                 {% csrf_token %}
 
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label for="id_first_name" class="form-label">Prenom</label>
-                        {{ form.first_name }}
-                        {% if form.first_name.errors %}
-                            <div class="field-error">{{ form.first_name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    <div class="col-6">
-                        <label for="id_last_name" class="form-label">Nom</label>
-                        {{ form.last_name }}
-                        {% if form.last_name.errors %}
-                            <div class="field-error">{{ form.last_name.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="id_username" class="form-label">Nom d'utilisateur</label>
-                    {{ form.username }}
-                    {% if form.username.errors %}
-                        <div class="field-error">{{ form.username.errors.0 }}</div>
-                    {% endif %}
-                </div>
-
                 <div class="mb-3">
                     <label for="id_email" class="form-label">Adresse email</label>
                     {{ form.email }}

@@ -214,47 +214,18 @@
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
                     </div>
                     {% endif %}
-                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 border-bottom pb-2">Appel a Projet</h6>
                     <div class="row">
                         <div class="col-12 mb-3">
                             <label class="form-label">Appel a projet <span class="text-danger">*</span></label>
                             {{ budget_form.appel_a_projet }}
                         </div>
-                    </div>
-
-                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Informations du Projet</h6>
-                    <div class="row">
                         <div class="col-12 mb-3">
                             <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
                             {{ budget_form.titre_projet }}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Operateur <span class="text-danger">*</span></label>
-                            {{ budget_form.operateur }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Filiere <span class="text-danger">*</span></label>
-                            {{ budget_form.filiere }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Metier <span class="text-danger">*</span></label>
-                            {{ budget_form.metier }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Localite <span class="text-danger">*</span></label>
-                            {{ budget_form.localite }}
-                        </div>
-                    </div>
-
-                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Effectifs</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
                             {{ budget_form.total_apprenants }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre de sessions <span class="text-danger">*</span></label>
-                            {{ budget_form.nombre_sessions }}
                         </div>
                     </div>
                 </div>

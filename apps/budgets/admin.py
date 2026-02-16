@@ -37,7 +37,8 @@ class UserAdmin(BaseUserAdmin):
 
 @admin.register(Metier)
 class MetierAdmin(admin.ModelAdmin):
-    list_display = ('nom',)
+    list_display = ('nom', 'filiere')
+    list_filter = ('filiere',)
     search_fields = ('nom',)
     list_per_page = 10
 

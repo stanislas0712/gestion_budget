@@ -5,16 +5,6 @@ from .models import InfosBudget, SousLigneArticle
 
 
 class InscriptionOperateurForm(UserCreationForm):
-    first_name = forms.CharField(
-        max_length=30, required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Prénom'}),
-        label="Prénom"
-    )
-    last_name = forms.CharField(
-        max_length=30, required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nom'}),
-        label="Nom"
-    )
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@exemple.com'}),
@@ -23,35 +13,47 @@ class InscriptionOperateurForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2']
-        widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom d'utilisateur"}),
-        }
+        fields = ['email', 'password1', 'password2']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['password1'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Mot de passe'})
         self.fields['password2'].widget.attrs.update({'class': 'form-control', 'placeholder': 'Confirmer le mot de passe'})
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Un compte avec cette adresse email existe déjà.")
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        # Générer le username à partir de l'email (partie avant @)
+        email_prefix = self.cleaned_data['email'].split('@')[0]
+        base_username = email_prefix
+        username = base_username
+        counter = 1
+        # Gérer les doublons de username
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+        user.username = username
+        user.email = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
 
 
-class InfosBudgetForm(forms.ModelForm):
+
+class InfosBudgetCreationForm(forms.ModelForm):
+    """Formulaire simplifie pour la creation d'un budget (3 champs)."""
     class Meta:
         model = InfosBudget
-        fields = [
-            'appel_a_projet', 'operateur', 'titre_projet', 'filiere',
-            'metier', 'localite', 'total_apprenants',
-            'nombre_sessions'
-        ]
+        fields = ['appel_a_projet', 'titre_projet', 'total_apprenants']
         widgets = {
             'appel_a_projet': forms.Select(attrs={'class': 'form-control'}),
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
-            'operateur': forms.TextInput(attrs={'class': 'form-control'}),
-            'filiere': forms.Select(attrs={'class': 'form-control'}),
-            'metier': forms.Select(attrs={'class': 'form-control'}),
-            'localite': forms.Select(attrs={'class': 'form-control'}),
             'total_apprenants': forms.NumberInput(attrs={'class': 'form-control'}),
-            'nombre_sessions': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -61,9 +63,17 @@ class InfosBudgetForm(forms.ModelForm):
             self.fields['appel_a_projet'].queryset = appels_actifs
             self.fields['appel_a_projet'].required = True
             self.fields['appel_a_projet'].empty_label = "-- Choisir un appel à projet --"
-        else:
-            # En mode modification, cacher le champ appel_a_projet
-            self.fields.pop('appel_a_projet', None)
+
+
+class InfosBudgetForm(forms.ModelForm):
+    """Formulaire simplifie pour la modification d'un budget (memes champs que creation)."""
+    class Meta:
+        model = InfosBudget
+        fields = ['titre_projet', 'total_apprenants']
+        widgets = {
+            'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
 
 class SousLigneArticleForm(forms.ModelForm):
     class Meta:

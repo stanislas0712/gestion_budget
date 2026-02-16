@@ -9,23 +9,24 @@ from simple_history.models import HistoricalRecords
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-class Metier(models.Model):
-    nom = models.CharField(max_length=255, unique=True, verbose_name="Nom du métier")
-
-    class Meta:
-        verbose_name = "Métier"
-        verbose_name_plural = "Métiers"
-        ordering = ['nom']
-
-    def __str__(self):
-        return self.nom
-
 class Filiere(models.Model):
     nom = models.CharField(max_length=255, unique=True, verbose_name="Nom de la filière")
 
     class Meta:
         verbose_name = "Filière"
         verbose_name_plural = "Filières"
+        ordering = ['nom']
+
+    def __str__(self):
+        return self.nom
+
+class Metier(models.Model):
+    nom = models.CharField(max_length=255, unique=True, verbose_name="Nom du métier")
+    filiere = models.ForeignKey(Filiere, on_delete=models.CASCADE, related_name="metiers", verbose_name="Filière")
+
+    class Meta:
+        verbose_name = "Métier"
+        verbose_name_plural = "Métiers"
         ordering = ['nom']
 
     def __str__(self):
@@ -72,7 +73,7 @@ class InfosBudget(models.Model):
         verbose_name="Appel à projet"
     )
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Créé par", related_name="budgets_crees")
-    operateur = models.CharField(max_length=255, verbose_name="Opérateur ou Consortium")
+    operateur = models.CharField(max_length=255, blank=True, default='', verbose_name="Opérateur ou Consortium")
     titre_projet = models.TextField(verbose_name="Titre du projet")
     filiere = models.ForeignKey(Filiere, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Filière de formation", related_name="budgets")
     metier = models.ForeignKey(Metier, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Métier", related_name="budgets")
@@ -156,12 +157,12 @@ class InfosBudget(models.Model):
         if self.nombre_sessions > 0 and self.total_apprenants > 0:
             self.cout_par_session = self.cout_par_apprenant * self.apprenants_par_session
 
-        # Calcul du pourcentage A.1
+        # Calcul du pourcentage A.1 (basé sur budget demandé uniquement)
         self.pourcentage_a1 = Decimal(0)
-        if self.cout_total_global > 0:
+        if self.budget_demande_global > 0:
             try:
                 ligne_a1 = LigneBudgetaire.objects.get(section__budget_parent=self, code="A.1")
-                self.pourcentage_a1 = (ligne_a1.cout_total_ligne / self.cout_total_global) * 100
+                self.pourcentage_a1 = (ligne_a1.budget_demande_ligne / self.budget_demande_global) * 100
             except LigneBudgetaire.DoesNotExist:
                 pass
 
@@ -177,9 +178,9 @@ class InfosBudget(models.Model):
         )
 
     def verifier_validation_a1(self):
-        """Vérifie si A.1 respecte la règle des 30%"""
-        if self.cout_total_global > 0 and self.pourcentage_a1 > 30:
-            return False, f"ERREUR : A.1 représente {self.pourcentage_a1:.1f}% du budget total (maximum autorisé : 30%)"
+        """Vérifie si A.1 respecte la règle des 30% (sur budget demandé)"""
+        if self.budget_demande_global > 0 and self.pourcentage_a1 > 30:
+            return False, f"ERREUR : A.1 représente {self.pourcentage_a1:.1f}% du budget demandé (maximum autorisé : 30%)"
         return True, None
 
     def initialiser_structure(self):
@@ -187,7 +188,7 @@ class InfosBudget(models.Model):
         if not self.sections.exists():
             # 1. Création des Sections (A, B)
             sec_a = SectionBudgetaire.objects.create(budget_parent=self, code="A", libelle="Formation")
-            sec_b = SectionBudgetaire.objects.create(budget_parent=self, code="B", libelle="Accompagnement à l'insertion")
+            sec_b = SectionBudgetaire.objects.create(budget_parent=self, code="B", libelle="Stage + Insertion")
 
             # 2. Création de Lignes types pour A
             ligne_a1 = LigneBudgetaire.objects.create(section=sec_a, code="A.1", libelle="Matières d'œuvre")
@@ -220,7 +221,7 @@ class InfosBudget(models.Model):
                 )
 
             # 5. Création d'une seule ligne pour B (pas de numérotation)
-            ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Accompagnement à l'insertion")
+            ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Stage + insertion")
 
             # 6. Création des Groupes pour B (activités d'appui)
             categories_b = [
@@ -288,11 +289,11 @@ class LigneBudgetaire(models.Model):
     budget_demande_ligne = models.DecimalField(max_digits=15, decimal_places=2, default=0)
 
     def clean(self):
-        # Validation règle des 30% pour A.1
-        if self.code == "A.1" and self.section.budget_parent.cout_total_global > 0:
-            pourcentage = (self.cout_total_ligne / self.section.budget_parent.cout_total_global) * 100
+        # Validation règle des 30% pour A.1 (basé sur budget demandé)
+        if self.code == "A.1" and self.section.budget_parent.budget_demande_global > 0:
+            pourcentage = (self.budget_demande_ligne / self.section.budget_parent.budget_demande_global) * 100
             if pourcentage > 30:
-                raise ValidationError(f"La ligne A.1 ne peut pas dépasser 30% du budget total.")
+                raise ValidationError(f"La ligne A.1 ne peut pas dépasser 30% du budget demandé.")
 
     def calculer_ligne(self):
         groupes = self.groupes.all()
@@ -343,7 +344,7 @@ def initialiser_budget(sender, instance, created, **kwargs):
     if created:
         # 1. Création des Sections (A, B)
         sec_a = SectionBudgetaire.objects.create(budget_parent=instance, code="A", libelle="Formation")
-        sec_b = SectionBudgetaire.objects.create(budget_parent=instance, code="B", libelle="Accompagnement à l'insertion")
+        sec_b = SectionBudgetaire.objects.create(budget_parent=instance, code="B", libelle="Stage + Insertion")
 
         # 2. Création de Lignes types pour A
         ligne_a1 = LigneBudgetaire.objects.create(section=sec_a, code="A.1", libelle="Matières d'œuvre")
@@ -376,7 +377,7 @@ def initialiser_budget(sender, instance, created, **kwargs):
             )
 
         # 5. Création d'une seule ligne pour B (pas de numérotation)
-        ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Accompagnement à l'insertion")
+        ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Stage + insertion")
 
         # 6. Création des Groupes pour B (activités d'appui)
         categories_b = [

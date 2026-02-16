@@ -18,28 +18,6 @@
     <td></td>
 </tr>
 
-{# Pourcentages #}
-<tr class="table-light">
-    <td colspan="5" class="fw-bold text-center">%</td>
-    <td class="text-end"></td>
-    <td class="text-end fw-bold text-primary">
-        {{ budget.co_financement_global|percentage:budget.cout_total_global|floatformat:0 }}%
-    </td>
-    <td class="text-end fw-bold text-success">
-        {{ budget.budget_demande_global|percentage:budget.cout_total_global|floatformat:0 }}%
-    </td>
-    <td></td>
-</tr>
-
-{# EFFECTIF TOTAL APPRENANT #}
-<tr class="table-light">
-    <td colspan="5" class="fw-bold text-center">EFFECTIF TOTAL APPRENANT</td>
-    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
-    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
-    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
-    <td></td>
-</tr>
-
 {# COUT UNITAIRE TOTAL /APPRENANT (FCFA) #}
 <tr class="table-warning">
     <td colspan="5" class="fw-bold text-center">COUT UNITAIRE TOTAL /APPRENANT (FCFA)</td>
@@ -49,37 +27,6 @@
     </td>
     <td class="text-end fw-bold">
         {{ budget.budget_demande_global|divide:budget.total_apprenants|floatformat:0|intcomma }}
-    </td>
-    <td></td>
-</tr>
-
-{# Nombre de session #}
-<tr class="table-light">
-    <td colspan="5" class="fw-bold text-center">Nombre de session</td>
-    <td class="text-end fw-bold">{{ budget.nombre_sessions }}</td>
-    <td class="text-end fw-bold">{{ budget.nombre_sessions }}</td>
-    <td class="text-end fw-bold">{{ budget.nombre_sessions }}</td>
-    <td></td>
-</tr>
-
-{# Nombre d'apprenant/Session #}
-<tr class="table-light">
-    <td colspan="5" class="fw-bold text-center">Nombre d'apprenant/Session</td>
-    <td class="text-end fw-bold">{{ budget.apprenants_par_session|floatformat:0|intcomma }}</td>
-    <td class="text-end fw-bold">{{ budget.apprenants_par_session|floatformat:0|intcomma }}</td>
-    <td class="text-end fw-bold">{{ budget.apprenants_par_session|floatformat:0|intcomma }}</td>
-    <td></td>
-</tr>
-
-{# Coût total/Session #}
-<tr class="table-success">
-    <td colspan="5" class="fw-bold text-center">Coût total/Session</td>
-    <td class="text-end fw-bold">{{ budget.cout_par_session|floatformat:0|intcomma }}</td>
-    <td class="text-end fw-bold">
-        {{ budget.co_financement_global|divide:budget.nombre_sessions|floatformat:0|intcomma }}
-    </td>
-    <td class="text-end fw-bold">
-        {{ budget.budget_demande_global|divide:budget.nombre_sessions|floatformat:0|intcomma }}
     </td>
     <td></td>
 </tr>

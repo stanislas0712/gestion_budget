@@ -8,7 +8,7 @@ from django.contrib.auth import update_session_auth_hash, login
 from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import InfosBudget, GroupeArticle, SousLigneArticle, SectionBudgetaire
-from .forms import SousLigneArticleForm, InfosBudgetForm, InscriptionOperateurForm
+from .forms import SousLigneArticleForm, InfosBudgetForm, InfosBudgetCreationForm, InscriptionOperateurForm
 
 
 def _envoyer_email_async(subject, message, recipient_list):
@@ -43,7 +43,7 @@ def inscription(request):
             user.is_superuser = False
             user.save()
             login(request, user)
-            messages.success(request, f"Bienvenue {user.get_full_name()} ! Votre compte opérateur a été créé avec succès.")
+            messages.success(request, f"Bienvenue ! Votre compte opérateur a été créé avec succès.")
             return redirect('budgets:dashboard')
     else:
         form = InscriptionOperateurForm()
@@ -68,8 +68,12 @@ def budget_detail(request, uuid):
 
     context = {'budget': budget}
 
-    # Formulaire de modification pour l'opérateur (modal)
-    if budget.peut_etre_modifie() and not request.user.is_staff and not request.user.is_superuser:
+    is_admin = request.user.is_staff or request.user.is_superuser
+
+    # Formulaire de modification
+    # - Opérateur : si le budget est modifiable
+    # - Admin : toujours disponible
+    if is_admin or budget.peut_etre_modifie():
         context['modifier_form'] = InfosBudgetForm(instance=budget)
 
     return render(request, 'budgets/budget.html', context)
@@ -236,7 +240,7 @@ def budget_dashboard(request):
     # Formulaire de création dans le modal (opérateurs uniquement)
     budget_form = None
     if not is_admin and appels_actifs.exists():
-        budget_form = InfosBudgetForm(appels_actifs=appels_actifs)
+        budget_form = InfosBudgetCreationForm(appels_actifs=appels_actifs)
 
     return render(request, 'budgets/dashboard.html', {
         'budgets': page_obj,
@@ -273,7 +277,7 @@ def creer_budget(request):
         return redirect('budgets:dashboard')
 
     if request.method == "POST":
-        form = InfosBudgetForm(request.POST, appels_actifs=appels_actifs)
+        form = InfosBudgetCreationForm(request.POST, appels_actifs=appels_actifs)
         if form.is_valid():
             nouveau_budget = form.save(commit=False)
             nouveau_budget.created_by = request.user
@@ -311,23 +315,22 @@ def creer_budget(request):
 
 @login_required
 def modifier_budget(request, uuid):
-    """Modifie les infos d'un budget - interdit aux admins"""
-    # L'admin ne peut pas modifier les budgets
-    if request.user.is_staff or request.user.is_superuser:
-        messages.error(request, "Les administrateurs ne sont pas autorisés à modifier les budgets.")
-        return redirect('budgets:budget_detail', uuid=uuid)
-
+    """Modifie les infos d'un budget"""
     budget = get_object_or_404(InfosBudget, uuid=uuid)
 
-    # Vérifier que l'opérateur est le créateur
-    if budget.created_by != request.user:
-        messages.error(request, "Vous n'avez pas accès à ce budget.")
-        return redirect('budgets:dashboard')
+    is_admin = request.user.is_staff or request.user.is_superuser
 
-    # Vérifier que le budget est modifiable (statut + appel actif)
-    if not budget.peut_etre_modifie():
-        messages.error(request, "Ce budget ne peut pas être modifié dans son état actuel.")
-        return redirect('budgets:budget_detail', uuid=uuid)
+    # Vérifier les permissions
+    if not is_admin:
+        # Opérateur : doit être le créateur
+        if budget.created_by != request.user:
+            messages.error(request, "Vous n'avez pas accès à ce budget.")
+            return redirect('budgets:dashboard')
+
+        # Opérateur : vérifier que le budget est modifiable (statut + appel actif)
+        if not budget.peut_etre_modifie():
+            messages.error(request, "Ce budget ne peut pas être modifié dans son état actuel.")
+            return redirect('budgets:budget_detail', uuid=uuid)
 
     if request.method == "POST":
         form = InfosBudgetForm(request.POST, instance=budget)

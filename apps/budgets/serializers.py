@@ -71,17 +71,17 @@ class InfosBudgetSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Règle métier des 30% : 
-        On vérifie si la ligne A.1 (Matière d'œuvre) ne dépasse pas 30% du global.
+        Règle métier des 30% :
+        On vérifie si la ligne A.1 (Matière d'œuvre) ne dépasse pas 30% du budget demandé.
         """
         instance = self.instance
-        if instance and instance.cout_total_global > 0:
+        if instance and instance.budget_demande_global > 0:
             # On cherche la ligne A.1 dans ce budget
             ligne_a1 = LigneBudgetaire.objects.filter(section__budget_parent=instance, code="A.1").first()
             if ligne_a1:
-                pourcentage = (ligne_a1.cout_total_ligne / instance.cout_total_global) * 100
+                pourcentage = (ligne_a1.budget_demande_ligne / instance.budget_demande_global) * 100
                 if pourcentage > 30:
                     raise serializers.ValidationError(
-                        "Alerte : La ligne A.1 (Matière d'œuvre) dépasse 30% du budget total."
+                        "Alerte : La ligne A.1 (Matière d'œuvre) dépasse 30% du budget demandé."
                     )
         return data
