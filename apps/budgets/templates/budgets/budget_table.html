@@ -103,17 +103,15 @@
     </div>
 </div>
 
-{# Boutons operateur : soumettre (seulement si budget modifiable et pas admin) #}
+{# Boutons operateur : modifier + soumettre (seulement si budget modifiable et pas admin) #}
 {% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
 <div class="d-flex justify-content-end gap-2 mt-4 mb-5">
-    <button type="button" class="btn btn-xero-outline" onclick="window.location.reload();">
-        <i class="bi bi-x-circle me-1"></i>Annuler les modifications
+    <button type="button" class="btn btn-xero-outline" data-bs-toggle="modal" data-bs-target="#modalModifierBudget">
+        <i class="bi bi-pencil me-1"></i>Modifier les infos
     </button>
-    <a href="{% url 'budgets:soumettre_budget' budget.uuid %}" class="btn btn-xero"
-       id="btn-soumettre"
-       onclick="return verifierAvantSoumission();">
+    <button type="button" class="btn btn-xero" id="btn-soumettre" onclick="verifierAvantSoumission();">
         <i class="bi bi-send me-1"></i>Soumettre le budget
-    </a>
+    </button>
 </div>
 {% endif %}
 
@@ -121,17 +119,15 @@
 {% if user.is_staff or user.is_superuser %}
     {% if budget.statut == 'soumis' %}
     <div class="d-flex justify-content-center gap-3 mt-4 mb-5">
-        <a href="{% url 'budgets:approuver_budget' budget.uuid %}" class="btn btn-success"
-           onclick="return confirm('Confirmer la validation de ce budget ?');">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalApprouver">
             <i class="bi bi-check-circle-fill me-1"></i>Valider
-        </a>
-        <a href="{% url 'budgets:demander_modification' budget.uuid %}" class="btn btn-warning">
+        </button>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDemanderModification">
             <i class="bi bi-pencil-square me-1"></i>Demander modification
-        </a>
-        <a href="{% url 'budgets:rejeter_budget' budget.uuid %}" class="btn btn-danger"
-           onclick="return confirm('Confirmer le rejet de ce budget ?');">
+        </button>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejeter">
             <i class="bi bi-x-circle-fill me-1"></i>Rejeter
-        </a>
+        </button>
     </div>
     {% elif budget.statut == 'rejete' %}
     <div class="text-center mt-4 mb-5">
@@ -153,57 +149,39 @@
 <script>
 // Fonction globale pour verifier avant soumission (appelee au clic sur Soumettre)
 function verifierAvantSoumission() {
-    // Empecher la navigation par defaut, on verifie d'abord via API
-    const btnSoumettre = document.getElementById('btn-soumettre');
-    const urlSoumettre = btnSoumettre.href;
-
-    // Recuperer l'UUID du budget
     const urlParts = window.location.pathname.split('/');
     const budgetUuid = urlParts[urlParts.length - 2];
+    const modalBody = document.getElementById('modalSoumettreBody');
+    const modalEl = document.getElementById('modalSoumettre');
+    const btnConfirm = document.getElementById('btnConfirmSoumettre');
 
-    // Appel API pour verifier le pourcentage A1 et le total
+    // Appel API pour verifier le pourcentage A1
     fetch(`/budgets/get-pourcentage-a1/${budgetUuid}/`)
         .then(response => response.json())
         .then(data => {
-            let bloque = false;
-
-            // Verifier A1 > 30%
             if (data.depasse_30) {
                 const alerteA1 = document.getElementById('alerte-a1');
                 const spanPourcentage = document.getElementById('a1-pourcentage-value');
                 if (alerteA1) {
                     alerteA1.classList.remove('d-none');
-                    if (spanPourcentage) {
-                        spanPourcentage.textContent = data.pourcentage_a1.toFixed(1);
-                    }
+                    if (spanPourcentage) spanPourcentage.textContent = data.pourcentage_a1.toFixed(1);
                 }
-                alert('Impossible de soumettre : A.1 (Matieres d\'oeuvre) represente ' + data.pourcentage_a1.toFixed(1) + '% du budget total. Le maximum autorise est de 30%.');
-                bloque = true;
+                modalBody.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de soumettre : A.1 (Matieres d\'oeuvre) represente <strong>' + data.pourcentage_a1.toFixed(1) + '%</strong> du budget total. Le maximum autorise est de <strong>30%</strong>.</div>';
+                btnConfirm.classList.add('d-none');
             } else {
                 const alerteA1 = document.getElementById('alerte-a1');
                 if (alerteA1) alerteA1.classList.add('d-none');
+                modalBody.innerHTML = '<p class="mb-0">Etes-vous sur de vouloir soumettre ce budget pour validation ?<br><small class="text-muted">Vous ne pourrez plus le modifier sans demande speciale de l\'administrateur.</small></p>';
+                btnConfirm.classList.remove('d-none');
             }
-
-            if (!bloque) {
-                // Scroll vers le haut pour cacher les alertes
-                const alerteA1 = document.getElementById('alerte-a1');
-                if (alerteA1) alerteA1.classList.add('d-none');
-
-                // Demander confirmation puis soumettre
-                if (confirm('Etes-vous sur de vouloir soumettre ce budget pour validation ? Vous ne pourrez plus le modifier sans demande speciale.')) {
-                    window.location.href = urlSoumettre;
-                }
-            }
+            new bootstrap.Modal(modalEl).show();
         })
         .catch(err => {
             console.error('Erreur verification:', err);
-            if (confirm('Impossible de verifier les regles. Soumettre quand meme ?')) {
-                window.location.href = urlSoumettre;
-            }
+            modalBody.innerHTML = '<p class="mb-0">Impossible de verifier les regles. Soumettre quand meme ?</p>';
+            btnConfirm.classList.remove('d-none');
+            new bootstrap.Modal(modalEl).show();
         });
-
-    // Toujours bloquer la navigation par defaut (le redirect se fait dans le .then)
-    return false;
 }
 
 (function() {

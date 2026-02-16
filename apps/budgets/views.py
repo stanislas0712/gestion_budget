@@ -65,7 +65,14 @@ def budget_detail(request, uuid):
     budget.initialiser_structure()
     # Forcer le rafraîchissement des données depuis la base
     budget.refresh_from_db()
-    return render(request, 'budgets/budget.html', {'budget': budget})
+
+    context = {'budget': budget}
+
+    # Formulaire de modification pour l'opérateur (modal)
+    if budget.peut_etre_modifie() and not request.user.is_staff and not request.user.is_superuser:
+        context['modifier_form'] = InfosBudgetForm(instance=budget)
+
+    return render(request, 'budgets/budget.html', context)
 
 @login_required
 def afficher_formulaire_ligne(request, groupe_id):
@@ -326,11 +333,19 @@ def modifier_budget(request, uuid):
         form = InfosBudgetForm(request.POST, instance=budget)
         if form.is_valid():
             form.save()
+            messages.success(request, "Budget modifié avec succès.")
             return redirect('budgets:budget_detail', uuid=budget.uuid)
-    else:
-        form = InfosBudgetForm(instance=budget)
+        else:
+            # Erreur : réafficher la page budget avec le modal ouvert
+            budget.initialiser_structure()
+            budget.refresh_from_db()
+            return render(request, 'budgets/budget.html', {
+                'budget': budget,
+                'modifier_form': form,
+                'show_modifier_modal': True,
+            })
 
-    return render(request, 'budgets/modifier_budget.html', {'form': form, 'budget': budget})
+    return redirect('budgets:budget_detail', uuid=budget.uuid)
 
 @login_required
 def supprimer_budget(request, uuid):
@@ -953,10 +968,18 @@ def export_word(request, uuid):
 # ========================= PROFIL & MOT DE PASSE =========================
 
 @login_required
+def _style_password_form(form):
+    """Ajoute la classe form-control aux champs du formulaire de mot de passe."""
+    for field in form.fields.values():
+        field.widget.attrs['class'] = 'form-control'
+    return form
+
+@login_required
 def profil(request):
     """Page de profil de l'utilisateur"""
     return render(request, 'budgets/profil.html', {
-        'user': request.user
+        'user': request.user,
+        'password_form': _style_password_form(PasswordChangeForm(request.user)),
     })
 
 @login_required
@@ -966,18 +989,17 @@ def changer_mot_de_passe(request):
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            # Mettre à jour la session pour éviter la déconnexion
             update_session_auth_hash(request, user)
             messages.success(request, 'Votre mot de passe a été changé avec succès !')
             return redirect('budgets:profil')
         else:
-            messages.error(request, 'Veuillez corriger les erreurs ci-dessous.')
-    else:
-        form = PasswordChangeForm(request.user)
+            # Erreur : réafficher le profil avec le modal ouvert
+            return render(request, 'budgets/profil.html', {
+                'password_form': _style_password_form(form),
+                'show_password_modal': True,
+            })
 
-    return render(request, 'budgets/changer_mot_de_passe.html', {
-        'form': form
-    })
+    return redirect('budgets:profil')
 
 # ========================= WORKFLOW DE VALIDATION =========================
 
