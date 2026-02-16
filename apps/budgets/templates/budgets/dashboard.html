@@ -17,9 +17,9 @@
         </div>
         {% if not is_admin %}
             {% if appels_actifs %}
-            <a href="{% url 'budgets:creer_budget' %}" class="btn btn-xero">
+            <button type="button" class="btn btn-xero" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
                 <i class="bi bi-plus me-1"></i>Nouveau budget
-            </a>
+            </button>
             {% else %}
             <button type="button" class="btn btn-xero-outline" disabled title="Aucun appel a projet actif">
                 <i class="bi bi-plus me-1"></i>Nouveau budget
@@ -154,7 +154,120 @@
         </div>
         {% endfor %}
     </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="d-flex justify-content-between align-items-center mt-2 mb-4">
+        <small class="text-muted">
+            {{ page_obj.paginator.count }} budget{{ page_obj.paginator.count|pluralize }} au total
+            — Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </small>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link" style="background: var(--xero-teal); border-color: var(--xero-teal);">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
+{% if budget_form %}
+<!-- Modal Créer Budget -->
+<div class="modal fade" id="modalCreerBudget" tabindex="-1" aria-labelledby="modalCreerBudgetLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:creer_budget' %}" novalidate>
+                {% csrf_token %}
+                <div class="modal-header" style="background: var(--xero-nav);">
+                    <h5 class="modal-title text-white" id="modalCreerBudgetLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Nouveau budget
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if budget_form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        Veuillez verifier les champs ci-dessous.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                    </div>
+                    {% endif %}
+                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 border-bottom pb-2">Appel a Projet</h6>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Appel a projet <span class="text-danger">*</span></label>
+                            {{ budget_form.appel_a_projet }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Informations du Projet</h6>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
+                            {{ budget_form.titre_projet }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Operateur <span class="text-danger">*</span></label>
+                            {{ budget_form.operateur }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Filiere <span class="text-danger">*</span></label>
+                            {{ budget_form.filiere }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Metier <span class="text-danger">*</span></label>
+                            {{ budget_form.metier }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Localite <span class="text-danger">*</span></label>
+                            {{ budget_form.localite }}
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Effectifs</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
+                            {{ budget_form.total_apprenants }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de sessions <span class="text-danger">*</span></label>
+                            {{ budget_form.nombre_sessions }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-xero">Creer le Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -171,5 +284,10 @@
     }
     setInterval(verifierAppel, 5000);
 })();
+{% if show_modal %}
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('modalCreerBudget')).show();
+});
+{% endif %}
 </script>
 {% endblock %}

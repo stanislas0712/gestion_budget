@@ -66,7 +66,7 @@ class OperatorListView(LoginRequiredMixin, ListView):
     model = Operator
     template_name = 'operators/operator_list.html'
     context_object_name = 'operators'
-    paginate_by = 25
+    paginate_by = 10
     
     def get_queryset(self):
         """Filter operators based on query parameters."""

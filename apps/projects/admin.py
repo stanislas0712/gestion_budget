@@ -9,6 +9,8 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ("title", "operator", "status", "ready_for_convention", "validated_by_admin", "updated_at")
     list_filter = ("status", "ready_for_convention", "validated_by_admin")
     search_fields = ("title", "operator__name", "gg_application__gg_id")
+    list_per_page = 10
+    history_list_per_page = 10
     raw_id_fields = ("gg_application", "operator")
     readonly_fields = ("created_at", "updated_at", "validated_at", "locked_at")
     fieldsets = (
@@ -36,6 +38,8 @@ class AppelAProjetAdmin(admin.ModelAdmin):
     list_display = ("nom", "date_debut", "date_fin", "est_actif", "created_by")
     list_filter = ("date_debut", "date_fin")
     search_fields = ("nom",)
+    list_per_page = 10
+    history_list_per_page = 10
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         ('Informations', {

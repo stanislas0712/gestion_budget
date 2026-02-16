@@ -138,6 +138,171 @@
         {% include 'budgets/budget_table.html' %}
     </div>
 </div>
+
+{# ===== MODAL: Modifier le budget (operateur) ===== #}
+{% if modifier_form %}
+<div class="modal fade" id="modalModifierBudget" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:modifier_budget' budget.uuid %}" novalidate>
+                {% csrf_token %}
+                <div class="modal-header" style="background: var(--xero-nav);">
+                    <h5 class="modal-title text-white"><i class="bi bi-pencil-square me-2"></i>Modifier le budget</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if modifier_form.errors %}
+                    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>Veuillez verifier les champs ci-dessous.</div>
+                    {% endif %}
+                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 border-bottom pb-2">Informations du Projet</h6>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
+                            {{ modifier_form.titre_projet }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Operateur <span class="text-danger">*</span></label>
+                            {{ modifier_form.operateur }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Filiere <span class="text-danger">*</span></label>
+                            {{ modifier_form.filiere }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Metier <span class="text-danger">*</span></label>
+                            {{ modifier_form.metier }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Localite <span class="text-danger">*</span></label>
+                            {{ modifier_form.localite }}
+                        </div>
+                    </div>
+                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Effectifs</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
+                            {{ modifier_form.total_apprenants }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nombre de sessions <span class="text-danger">*</span></label>
+                            {{ modifier_form.nombre_sessions }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-xero">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ===== MODAL: Soumettre le budget (operateur) ===== #}
+{% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
+<div class="modal fade" id="modalSoumettre" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--xero-nav);">
+                <h5 class="modal-title text-white"><i class="bi bi-send me-2"></i>Soumettre le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalSoumettreBody">
+                <p class="mb-0">Verification en cours...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:soumettre_budget' budget.uuid %}" class="btn btn-xero" id="btnConfirmSoumettre">
+                    <i class="bi bi-send me-1"></i>Soumettre
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ===== MODALS ADMIN: Approuver / Demander modification / Rejeter ===== #}
+{% if user.is_staff or user.is_superuser %}
+{% if budget.statut == 'soumis' %}
+
+{# Modal Approuver #}
+<div class="modal fade" id="modalApprouver" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Valider le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirmez-vous la validation du budget <strong>{{ budget.titre_projet }}</strong> ?</p>
+                <p class="text-muted small mb-0">Un email de notification sera envoye a l'operateur.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:approuver_budget' budget.uuid %}" class="btn btn-success">
+                    <i class="bi bi-check-circle-fill me-1"></i>Confirmer la validation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Modal Demander modification #}
+<div class="modal fade" id="modalDemanderModification" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:demander_modification' budget.uuid %}">
+                {% csrf_token %}
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark"><i class="bi bi-pencil-square me-2"></i>Demander une modification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Un email sera envoye a <strong>{{ budget.created_by.get_full_name|default:budget.created_by.username }}</strong>.
+                    </div>
+                    <label class="form-label fw-semibold">Motif de la demande <span class="text-danger">*</span></label>
+                    <textarea name="motif" class="form-control" rows="4" required
+                              placeholder="Decrivez les modifications que l'operateur doit apporter..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-warning text-dark">
+                        <i class="bi bi-send me-1"></i>Envoyer la demande
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{# Modal Rejeter #}
+<div class="modal fade" id="modalRejeter" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle-fill me-2"></i>Rejeter le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirmez-vous le rejet du budget <strong>{{ budget.titre_projet }}</strong> ?</p>
+                <p class="text-muted small mb-0">Un email de notification sera envoye a l'operateur.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:rejeter_budget' budget.uuid %}" class="btn btn-danger">
+                    <i class="bi bi-x-circle-fill me-1"></i>Confirmer le rejet
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -155,5 +320,10 @@
     }
     setInterval(verifierStatut, 5000);
 })();
+{% if show_modifier_modal %}
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('modalModifierBudget')).show();
+});
+{% endif %}
 </script>
 {% endblock %}
