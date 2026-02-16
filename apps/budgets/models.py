@@ -220,8 +220,8 @@ class InfosBudget(models.Model):
                     ligne=ligne_a2
                 )
 
-            # 5. Création d'une seule ligne pour B (pas de numérotation)
-            ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Stage + insertion")
+            # 5. Création d'une seule ligne pour B
+            ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B.1", libelle="Stage et insertion")
 
             # 6. Création des Groupes pour B (activités d'appui)
             categories_b = [
@@ -376,8 +376,8 @@ def initialiser_budget(sender, instance, created, **kwargs):
                 ligne=ligne_a2
             )
 
-        # 5. Création d'une seule ligne pour B (pas de numérotation)
-        ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B", libelle="Stage + insertion")
+        # 5. Création d'une seule ligne pour B
+        ligne_b = LigneBudgetaire.objects.create(section=sec_b, code="B.1", libelle="Stage et insertion")
 
         # 6. Création des Groupes pour B (activités d'appui)
         categories_b = [
