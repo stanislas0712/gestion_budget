@@ -25,6 +25,9 @@ urlpatterns = [
     path('export-pdf/<uuid:uuid>/', views.export_pdf, name='export_pdf'),
     path('export-word/<uuid:uuid>/', views.export_word, name='export_word'),
 
+    # Téléchargement templates vierges
+    path('telecharger-template/<str:format>/', views.telecharger_template, name='telecharger_template'),
+
     # Profil
     path('profil/', views.profil, name='profil'),
     path('profil/changer-mot-de-passe/', views.changer_mot_de_passe, name='changer_mot_de_passe'),

@@ -50,8 +50,8 @@
                                     {% include 'partials/subline_row.html' with article=article budget=budget %}
                                 {% endfor %}
 
-                                {# Formulaire de saisie visible uniquement pour l'operateur (pas l'admin) #}
-                                {% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
+                                {# Formulaire de saisie visible pour l'operateur si modifiable, toujours pour l'admin #}
+                                {% if budget.peut_etre_modifie or user.is_staff or user.is_superuser %}
                                 <tr class="bg-light article-form-row" data-groupe-id="{{ groupe.id }}" id="form-groupe-{{ groupe.id }}">
                                     <td class="ps-5"></td>
                                     <td>
@@ -117,8 +117,15 @@
 
 {# Zone admin en bas : boutons d'action ou message de statut #}
 {% if user.is_staff or user.is_superuser %}
+    {# Bouton modifier toujours visible pour l'admin #}
+    <div class="text-center mt-4 mb-3">
+        <button type="button" class="btn btn-xero-outline" data-bs-toggle="modal" data-bs-target="#modalModifierBudget">
+            <i class="bi bi-pencil me-1"></i>Modifier les infos du budget
+        </button>
+    </div>
+
     {% if budget.statut == 'soumis' %}
-    <div class="d-flex justify-content-center gap-3 mt-4 mb-5">
+    <div class="d-flex justify-content-center gap-3 mb-5">
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalApprouver">
             <i class="bi bi-check-circle-fill me-1"></i>Valider
         </button>
@@ -166,7 +173,7 @@ function verifierAvantSoumission() {
                     alerteA1.classList.remove('d-none');
                     if (spanPourcentage) spanPourcentage.textContent = data.pourcentage_a1.toFixed(1);
                 }
-                modalBody.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de soumettre : A.1 (Matieres d\'oeuvre) represente <strong>' + data.pourcentage_a1.toFixed(1) + '%</strong> du budget total. Le maximum autorise est de <strong>30%</strong>.</div>';
+                modalBody.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de soumettre : A.1 (Matieres d\'oeuvre) represente <strong>' + data.pourcentage_a1.toFixed(1) + '%</strong> du budget demande. Le maximum autorise est de <strong>30%</strong>.</div>';
                 btnConfirm.classList.add('d-none');
             } else {
                 const alerteA1 = document.getElementById('alerte-a1');

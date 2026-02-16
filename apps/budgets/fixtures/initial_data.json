@@ -1,0 +1,30 @@
+[
+  {
+    "model": "budgets.localite",
+    "pk": 2,
+    "fields": {
+      "nom": "Haut-Bassin"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 4,
+    "fields": {
+      "nom": "Kadiogo"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 6,
+    "fields": {
+      "nom": "NANDO"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 7,
+    "fields": {
+      "nom": "Guiriko"
+    }
+  }
+]

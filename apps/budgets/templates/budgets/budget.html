@@ -54,7 +54,7 @@
     {# Alerte A1 > 30% #}
     <div id="alerte-a1" class="alert alert-danger mb-4 d-none">
         <strong>ATTENTION :</strong> A.1 (Matieres d'oeuvre) represente
-        <span id="a1-pourcentage-value">0</span>% du budget total.
+        <span id="a1-pourcentage-value">0</span>% du budget demande.
         <strong>Le maximum autorise est de 30%.</strong>
     </div>
 
@@ -154,38 +154,14 @@
                     {% if modifier_form.errors %}
                     <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>Veuillez verifier les champs ci-dessous.</div>
                     {% endif %}
-                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 border-bottom pb-2">Informations du Projet</h6>
                     <div class="row">
                         <div class="col-12 mb-3">
                             <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
                             {{ modifier_form.titre_projet }}
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Operateur <span class="text-danger">*</span></label>
-                            {{ modifier_form.operateur }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Filiere <span class="text-danger">*</span></label>
-                            {{ modifier_form.filiere }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Metier <span class="text-danger">*</span></label>
-                            {{ modifier_form.metier }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Localite <span class="text-danger">*</span></label>
-                            {{ modifier_form.localite }}
-                        </div>
-                    </div>
-                    <h6 class="text-uppercase fw-semibold text-muted small mb-3 mt-2 border-bottom pb-2">Effectifs</h6>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12 mb-3">
                             <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
                             {{ modifier_form.total_apprenants }}
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre de sessions <span class="text-danger">*</span></label>
-                            {{ modifier_form.nombre_sessions }}
                         </div>
                     </div>
                 </div>
