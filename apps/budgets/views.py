@@ -226,6 +226,11 @@ def budget_dashboard(request):
     toutes_filieres = Filiere.objects.all()
     toutes_localites = Localite.objects.all()
 
+    # Formulaire de création dans le modal (opérateurs uniquement)
+    budget_form = None
+    if not is_admin and appels_actifs.exists():
+        budget_form = InfosBudgetForm(appels_actifs=appels_actifs)
+
     return render(request, 'budgets/dashboard.html', {
         'budgets': page_obj,
         'page_obj': page_obj,
@@ -238,6 +243,7 @@ def budget_dashboard(request):
         'filtre_appel': filtre_appel,
         'filtre_filiere': filtre_filiere,
         'filtre_localite': filtre_localite,
+        'budget_form': budget_form,
     })
 
 @login_required
@@ -266,10 +272,35 @@ def creer_budget(request):
             nouveau_budget.created_by = request.user
             nouveau_budget.save()
             return redirect('budgets:budget_detail', uuid=nouveau_budget.uuid)
-    else:
-        form = InfosBudgetForm(appels_actifs=appels_actifs)
+        else:
+            # Erreur de validation : afficher le dashboard avec le modal ouvert
+            from .models import Filiere, Localite
+            from django.utils import timezone as tz
+            from django.core.paginator import Paginator
 
-    return render(request, 'budgets/creer_budget.html', {'form': form, 'appels_actifs': appels_actifs})
+            now = tz.now()
+            budgets = InfosBudget.objects.none()
+            paginator = Paginator(budgets, 10)
+            page_obj = paginator.get_page(1)
+            tous_appels = AppelAProjet.objects.all().order_by('-date_debut')
+
+            return render(request, 'budgets/dashboard.html', {
+                'budgets': page_obj,
+                'page_obj': page_obj,
+                'query': None,
+                'is_admin': False,
+                'appels_actifs': appels_actifs,
+                'tous_appels': tous_appels,
+                'toutes_filieres': Filiere.objects.all(),
+                'toutes_localites': Localite.objects.all(),
+                'filtre_appel': None,
+                'filtre_filiere': None,
+                'filtre_localite': None,
+                'budget_form': form,
+                'show_modal': True,
+            })
+
+    return redirect('budgets:dashboard')
 
 @login_required
 def modifier_budget(request, uuid):
