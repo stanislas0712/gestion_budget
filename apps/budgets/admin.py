@@ -32,24 +32,28 @@ class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
     list_filter = ('is_staff', 'is_superuser', 'is_active')
     search_fields = ('username', 'first_name', 'last_name', 'email')
+    list_per_page = 10
 
 
 @admin.register(Metier)
 class MetierAdmin(admin.ModelAdmin):
     list_display = ('nom',)
     search_fields = ('nom',)
+    list_per_page = 10
 
 
 @admin.register(Localite)
 class LocaliteAdmin(admin.ModelAdmin):
     list_display = ('nom',)
     search_fields = ('nom',)
+    list_per_page = 10
 
 
 @admin.register(Filiere)
 class FiliereAdmin(admin.ModelAdmin):
     list_display = ('nom',)
     search_fields = ('nom',)
+    list_per_page = 10
 
 # --- NIVEAU BAS : ARTICLES DANS LES GROUPES ---
 
@@ -64,6 +68,7 @@ class GroupeArticleAdmin(admin.ModelAdmin):
     list_display = ('libelle', 'ligne', 'cout_total_groupe', 'budget_demande_groupe')
     inlines = [SousLigneArticleInline]
     list_filter = ('ligne__section__budget_parent',)
+    list_per_page = 10
 
 # --- NIVEAU MOYEN : GROUPES DANS LES LIGNES ---
 
@@ -77,6 +82,7 @@ class GroupeArticleInline(admin.TabularInline):
 class LigneBudgetaireAdmin(admin.ModelAdmin):
     list_display = ('code', 'libelle', 'section', 'cout_total_ligne')
     inlines = [GroupeArticleInline]
+    list_per_page = 10
 
 # --- NIVEAU HAUT : SECTIONS DANS LE BUDGET ---
 
@@ -93,6 +99,7 @@ class InfosBudgetAdmin(admin.ModelAdmin):
     list_display = ('titre_projet', 'operateur', 'statut', 'cout_total_global', 'budget_demande_global', 'cout_par_apprenant', 'created_by')
     list_filter = ('statut', 'appel_a_projet', 'filiere', 'localite')
     search_fields = ('titre_projet', 'operateur', 'filiere__nom')
+    list_per_page = 10
     fieldsets = (
         ('Informations Générales', {
             'classes': ('wide',),
@@ -124,6 +131,10 @@ class InfosBudgetAdmin(admin.ModelAdmin):
         'date_demande_modification', 'date_autorisation_modification',
     )
     inlines = [SectionBudgetaireInline]
+
+    def has_add_permission(self, request):
+        """Seul l'opérateur peut créer un budget, pas depuis l'admin"""
+        return False
 
     # Action manuelle pour recalculer tout le budget en cas de besoin
     actions = ['forcer_recalcul']

@@ -10,6 +10,7 @@ from .goodgrants.models import GoodGrantsApplication
 class IntegrationHealthAdmin(admin.ModelAdmin):
     list_display = ("system", "last_success_at", "last_error_at", "updated_at")
     search_fields = ("system",)
+    list_per_page = 10
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         ('Système', {
@@ -32,6 +33,8 @@ class GoodGrantsApplicationAdmin(SimpleHistoryAdmin):
     list_display = ("gg_id", "status", "validated_at", "synced", "synced_at", "received_at")
     list_filter = ("status", "synced")
     search_fields = ("gg_id",)
+    list_per_page = 10
+    history_list_per_page = 10
     readonly_fields = ("received_at", "updated_at", "raw_payload")
     fieldsets = (
         ('Identification', {

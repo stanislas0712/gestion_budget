@@ -10,6 +10,8 @@ class ExportJobAdmin(SimpleHistoryAdmin):
     list_display = ("kind", "status", "created_by", "created_at", "updated_at")
     list_filter = ("kind", "status")
     search_fields = ("error_message",)
+    list_per_page = 10
+    history_list_per_page = 10
     readonly_fields = ("created_at", "updated_at")
     fieldsets = (
         ('Type & Statut', {

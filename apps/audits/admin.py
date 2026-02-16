@@ -1,8 +1,19 @@
+from auditlog import get_logentry_model
+from auditlog.admin import LogEntryAdmin as DefaultLogEntryAdmin
 from auditlog.registry import auditlog
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import IntegrationEvent, AuditLog
+
+# Override auditlog's LogEntry admin to add pagination
+LogEntry = get_logentry_model()
+admin.site.unregister(LogEntry)
+
+
+@admin.register(LogEntry)
+class LogEntryAdmin(DefaultLogEntryAdmin):
+    list_per_page = 10
 
 
 @admin.register(IntegrationEvent)
@@ -11,6 +22,8 @@ class IntegrationEventAdmin(SimpleHistoryAdmin):
     list_filter = ("system", "direction", "status")
     search_fields = ("external_id", "correlation_id", "error_message")
     readonly_fields = ("created_at",)
+    list_per_page = 10
+    history_list_per_page = 10
     fieldsets = (
         ('Identification', {
             'classes': ('wide',),
@@ -37,6 +50,8 @@ class AuditLogAdmin(SimpleHistoryAdmin):
     list_filter = ("action", "model_name")
     search_fields = ("model_name", "object_id", "user__username")
     readonly_fields = ("created_at",)
+    list_per_page = 10
+    history_list_per_page = 10
     fieldsets = (
         ('Action', {
             'classes': ('wide',),

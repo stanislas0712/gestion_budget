@@ -26,6 +26,8 @@ class OperatorAdmin(SimpleHistoryAdmin):
     ]
     
     search_fields = ['name', 'registration_number', 'gg_operator_id']
+    list_per_page = 10
+    history_list_per_page = 10
     
     readonly_fields = [
         'gg_operator_id',

@@ -19,7 +19,7 @@ class IntegrationEventListView(LoginRequiredMixin, ListView):
     model = IntegrationEvent
     template_name = 'audits/integration_event_list.html'
     context_object_name = 'events'
-    paginate_by = 50
+    paginate_by = 10
     
     def get_queryset(self):
         """Filter events based on query parameters."""
@@ -87,7 +87,7 @@ class AuditLogListView(LoginRequiredMixin, ListView):
     model = AuditLog
     template_name = 'audits/audit_log_list.html'
     context_object_name = 'logs'
-    paginate_by = 50
+    paginate_by = 10
     
     def get_queryset(self):
         """Filter logs based on query parameters."""
@@ -156,10 +156,11 @@ class DashboardView(LoginRequiredMixin, ListView):
     template_name = 'audits/Dashboard.html'
     model = IntegrationEvent
     context_object_name = 'recent_events'
-    
+    paginate_by = 10
+
     def get_queryset(self):
         """Get recent integration events."""
-        return IntegrationEvent.objects.select_related('created_by')[:20]
+        return IntegrationEvent.objects.select_related('created_by').order_by('-created_at')
     
     def get_context_data(self, **kwargs):
         """Add dashboard statistics."""

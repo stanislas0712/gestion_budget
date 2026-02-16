@@ -10,6 +10,8 @@ class WorkflowEventAdmin(SimpleHistoryAdmin):
     list_display = ("action", "content_type", "object_id", "created_by", "created_at")
     list_filter = ("action", "content_type")
     search_fields = ("object_id", "notes")
+    list_per_page = 10
+    history_list_per_page = 10
     readonly_fields = ("created_at",)
     fieldsets = (
         ('Objet concerné', {
