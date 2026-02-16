@@ -1190,3 +1190,45 @@ Système de Gestion de Budget""",
     messages.success(request, "Le budget a été rejeté. L'opérateur a été notifié.")
     return redirect('budgets:budget_detail', uuid=uuid)
 
+@login_required
+def telecharger_template(request, format):
+    """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
+    import os
+    from django.conf import settings
+    
+    # Définir les chemins des templates
+    templates_dir = os.path.join(settings.MEDIA_ROOT, 'templates')
+    
+    # Mapping des formats vers les fichiers
+    fichiers = {
+        'excel': 'template_budget.xlsx',
+        'pdf': 'template_budget.pdf',
+        'word': 'template_budget.docx',
+    }
+    
+    if format not in fichiers:
+        messages.error(request, "Format de fichier invalide.")
+        return redirect('budgets:dashboard')
+    
+    fichier_path = os.path.join(templates_dir, fichiers[format])
+    
+    # Vérifier si le fichier existe
+    if not os.path.exists(fichier_path):
+        messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
+        return redirect('budgets:dashboard')
+    
+    # Préparer la réponse de téléchargement
+    with open(fichier_path, 'rb') as f:
+        response = HttpResponse(f.read())
+    
+    # Définir le type de contenu selon le format
+    content_types = {
+        'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'pdf': 'application/pdf',
+        'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }
+    
+    response['Content-Type'] = content_types[format]
+    response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
+    
+    return response

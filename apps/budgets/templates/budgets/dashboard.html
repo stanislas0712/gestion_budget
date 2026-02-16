@@ -16,15 +16,35 @@
             </p>
         </div>
         {% if not is_admin %}
-            {% if appels_actifs %}
-            <button type="button" class="btn btn-xero" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
-                <i class="bi bi-plus me-1"></i>Nouveau budget
-            </button>
-            {% else %}
-            <button type="button" class="btn btn-xero-outline" disabled title="Aucun appel a projet actif">
-                <i class="bi bi-plus me-1"></i>Nouveau budget
-            </button>
-            {% endif %}
+            <div class="d-flex gap-2">
+                {% if appels_actifs %}
+                <button type="button" class="btn btn-xero" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
+                    <i class="bi bi-plus me-1"></i>Nouveau budget
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-xero-outline" disabled title="Aucun appel a projet actif">
+                    <i class="bi bi-plus me-1"></i>Nouveau budget
+                </button>
+                {% endif %}
+
+                {# Bouton télécharger le format #}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-xero-outline dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-download me-1"></i>Télécharger le format
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'excel' %}">
+                            <i class="bi bi-file-earmark-excel text-success me-2"></i>Format Excel (.xlsx)
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'pdf' %}">
+                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Format PDF (.pdf)
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'word' %}">
+                            <i class="bi bi-file-earmark-word text-primary me-2"></i>Format Word (.docx)
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
         {% endif %}
     </div>
 
