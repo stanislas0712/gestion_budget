@@ -18,7 +18,7 @@
         {% if not is_admin %}
             <div class="d-flex gap-2">
                 {% if appels_actifs %}
-                <button type="button" class="btn btn-xero" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
                     <i class="bi bi-plus me-1"></i>Nouveau budget
                 </button>
                 {% else %}
@@ -65,8 +65,8 @@
     </div>
     {% endif %}
 
+    {% if is_admin %}
     <div class="mb-4 mt-3">
-        {% if is_admin %}
         <form method="GET" action="">
             <div class="row g-2 align-items-end">
                 <div class="col-md">
@@ -80,22 +80,6 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md">
-                    <select name="filiere" class="form-select" title="Filtrer par filiere">
-                        <option value="">Filiere</option>
-                        {% for f in toutes_filieres %}
-                            <option value="{{ f.id }}" {% if filtre_filiere == f.id|stringformat:"d" %}selected{% endif %}>{{ f.nom }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md">
-                    <select name="localite" class="form-select" title="Filtrer par localite">
-                        <option value="">Localite</option>
-                        {% for loc in toutes_localites %}
-                            <option value="{{ loc.id }}" {% if filtre_localite == loc.id|stringformat:"d" %}selected{% endif %}>{{ loc.nom }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
                 <div class="col-auto d-flex gap-2">
                     <button type="submit" class="btn btn-xero" title="Filtrer">
                         <i class="bi bi-funnel"></i>
@@ -106,16 +90,11 @@
                 </div>
             </div>
         </form>
-        {% else %}
-        <form method="GET" action="" class="d-flex gap-2">
-            <input type="text" name="q" class="form-control" placeholder="Rechercher par titre, operateur, filiere ou localite..." value="{{ request.GET.q }}">
-            <button type="submit" class="btn btn-xero" title="Rechercher">
-                <i class="bi bi-search"></i>
-            </button>
-        </form>
-        {% endif %}
     </div>
+    {% endif %}
 
+    {% if is_admin %}
+    {# ===== VUE ADMIN : liste plate avec pagination ===== #}
     <div class="row">
         {% for budget in budgets %}
         <div class="col-md-6 col-lg-4 mb-4">
@@ -166,11 +145,7 @@
         </div>
         {% empty %}
         <div class="col-12 text-center py-5">
-            {% if query %}
-                <p class="text-muted mt-3">Aucun budget trouve pour "{{ query }}"</p>
-            {% else %}
-                <p class="text-muted mt-3">Utilisez la barre de recherche pour trouver des budgets</p>
-            {% endif %}
+            <p class="text-muted mt-3">Aucun budget trouve</p>
         </div>
         {% endfor %}
     </div>
@@ -211,6 +186,66 @@
             {% endif %}
         </ul>
     </nav>
+    {% endif %}
+
+    {% else %}
+    {# ===== VUE OPERATEUR : budgets groupés par appel à projet ===== #}
+    {% for groupe in budgets_par_appel %}
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-megaphone-fill me-2" style="color: var(--xero-teal);"></i>
+            <h5 class="fw-bold mb-0">{{ groupe.appel.nom }}</h5>
+            {% if groupe.appel.est_actif %}
+                <span class="badge bg-success ms-2">Actif</span>
+            {% else %}
+                <span class="badge bg-secondary ms-2">Termine</span>
+            {% endif %}
+        </div>
+        <div class="row">
+            {% for budget in groupe.budgets %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title fw-bold mb-0 text-truncate me-2" title="{{ budget.titre_projet }}">{{ budget.titre_projet|truncatechars:45 }}</h6>
+                            {% if budget.statut == 'brouillon' %}
+                                <span class="badge bg-secondary badge-statut">Brouillon</span>
+                            {% elif budget.statut == 'soumis' %}
+                                <span class="badge bg-dark badge-statut">Soumis</span>
+                            {% elif budget.statut == 'modification_autorisee' %}
+                                <span class="badge bg-warning text-dark badge-statut">Modification</span>
+                            {% elif budget.statut == 'approuve' %}
+                                <span class="badge bg-success badge-statut">Approuve</span>
+                            {% elif budget.statut == 'rejete' %}
+                                <span class="badge bg-danger badge-statut">Rejete</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small mb-3">{{ budget.operateur }}</p>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-muted">Cout total</span>
+                                <strong>{{ budget.cout_total_global|floatformat:0|intcomma }} FCFA</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-muted">Apprenants</span>
+                                <span>{{ budget.total_apprenants }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-xero-outline btn-sm w-100 mt-3">
+                            Ouvrir
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-5">
+        <i class="bi bi-folder2-open display-4 text-muted"></i>
+        <p class="text-muted mt-3">Vous n'avez pas encore de budgets</p>
+    </div>
+    {% endfor %}
     {% endif %}
 </div>
 {% if budget_form %}

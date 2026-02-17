@@ -199,10 +199,7 @@ def budget_dashboard(request):
     if is_admin:
         budgets = InfosBudget.objects.all()
     else:
-        if has_filters:
-            budgets = InfosBudget.objects.filter(created_by=request.user)
-        else:
-            budgets = InfosBudget.objects.none()
+        budgets = InfosBudget.objects.filter(created_by=request.user)
 
     if query:
         budgets = budgets.filter(
@@ -221,7 +218,7 @@ def budget_dashboard(request):
 
     budgets = budgets.order_by('-id')
 
-    # Pagination : 10 budgets par page
+    # Pagination : 10 budgets par page (admin uniquement)
     paginator = Paginator(budgets, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -231,6 +228,18 @@ def budget_dashboard(request):
     appels_actifs = AppelAProjet.objects.filter(
         date_debut__lte=now, date_fin__gte=now
     )
+
+    # Regrouper les budgets par appel à projet (pour les opérateurs)
+    budgets_par_appel = []
+    if not is_admin:
+        appels_ids = budgets.values_list('appel_a_projet_id', flat=True).distinct()
+        appels_avec_budgets = AppelAProjet.objects.filter(id__in=appels_ids).order_by('-date_debut')
+        for appel in appels_avec_budgets:
+            budgets_appel = budgets.filter(appel_a_projet=appel)
+            budgets_par_appel.append({
+                'appel': appel,
+                'budgets': budgets_appel,
+            })
 
     # Listes pour les filtres
     tous_appels = AppelAProjet.objects.all().order_by('-date_debut')
@@ -245,6 +254,7 @@ def budget_dashboard(request):
     return render(request, 'budgets/dashboard.html', {
         'budgets': page_obj,
         'page_obj': page_obj,
+        'budgets_par_appel': budgets_par_appel,
         'query': query,
         'is_admin': is_admin,
         'appels_actifs': appels_actifs,
@@ -1056,7 +1066,7 @@ Veuillez vous connecter à l'application pour examiner ce budget.""",
         )
 
     messages.success(request, "Votre budget a été soumis avec succès. Vous recevrez une notification une fois qu'il aura été examiné.")
-    return redirect('budgets:budget_detail', uuid=uuid)
+    return redirect('budgets:dashboard')
 
 @login_required
 def demander_modification(request, uuid):
