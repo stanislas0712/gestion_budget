@@ -94,20 +94,16 @@
         </div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <small class="text-muted d-block">Operateur</small>
                     <strong>{{ budget.operateur }}</strong>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <small class="text-muted d-block">Apprenants</small>
                     <strong>{{ budget.total_apprenants }}</strong>
                 </div>
-                <div class="col-md-3">
-                    <small class="text-muted d-block">Sessions</small>
-                    <strong>{{ budget.nombre_sessions }}</strong>
-                </div>
                 {% if budget.appel_a_projet %}
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <small class="text-muted d-block">Appel a projet</small>
                     <strong>{{ budget.appel_a_projet.nom }}</strong>
                 </div>

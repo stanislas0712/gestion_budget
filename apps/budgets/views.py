@@ -1045,27 +1045,7 @@ def soumettre_budget(request, uuid):
     budget.date_soumission = timezone.now()
     budget.save()
 
-    # Envoyer un email à l'admin (en arrière-plan)
-    admin_emails = [u.email for u in User.objects.filter(is_staff=True, is_active=True) if u.email]
-    if admin_emails:
-        _envoyer_email_async(
-            subject=f'Nouveau budget soumis: {budget.titre_projet}',
-            message=f"""Un nouveau budget a été soumis pour validation.
-
-Titre du projet: {budget.titre_projet}
-Opérateur: {budget.operateur}
-Filière: {budget.filiere if budget.filiere else 'Non spécifiée'}
-Soumis par: {budget.created_by.username if budget.created_by else 'Inconnu'}
-Date de soumission: {timezone.now().strftime('%d/%m/%Y %H:%M')}
-
-Coût total global: {budget.cout_total_global:,.0f} FCFA
-Budget demandé: {budget.budget_demande_global:,.0f} FCFA
-
-Veuillez vous connecter à l'application pour examiner ce budget.""",
-            recipient_list=admin_emails,
-        )
-
-    messages.success(request, "Votre budget a été soumis avec succès. Vous recevrez une notification une fois qu'il aura été examiné.")
+    messages.success(request, "Votre budget a été soumis avec succès.")
     return redirect('budgets:dashboard')
 
 @login_required
