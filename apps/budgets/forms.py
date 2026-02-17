@@ -46,12 +46,13 @@ class InscriptionOperateurForm(UserCreationForm):
 
 
 class InfosBudgetCreationForm(forms.ModelForm):
-    """Formulaire simplifie pour la creation d'un budget (3 champs)."""
+    """Formulaire simplifie pour la creation d'un budget (4 champs)."""
     class Meta:
         model = InfosBudget
-        fields = ['appel_a_projet', 'titre_projet', 'total_apprenants']
+        fields = ['appel_a_projet', 'operateur', 'titre_projet', 'total_apprenants']
         widgets = {
             'appel_a_projet': forms.Select(attrs={'class': 'form-control'}),
+            'operateur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom de l'opérateur"}),
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
             'total_apprenants': forms.NumberInput(attrs={'class': 'form-control'}),
         }
