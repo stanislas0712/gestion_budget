@@ -1,9 +1,85 @@
 from __future__ import annotations
 
-import os
+import os,sys
+from datetime import timedelta
 from pathlib import Path
-
 from dotenv import load_dotenv
+
+# Patch pour Django 4.2 avec Python 3.14 - fix du bug __dict__ dans context.py
+import django.template.context
+
+# Patch aussi bind_template pour garantir _processors_index
+from contextlib import contextmanager
+
+_original_bind_template = django.template.context.RequestContext.bind_template
+
+@contextmanager
+def _patched_bind_template(self, template):
+    """Patch pour garantir que _processors_index existe avant bind_template"""
+    if hasattr(self, 'request') and not hasattr(self, '_processors_index'):
+        # Si _processors_index n'existe pas, le définir
+        if len(self.dicts) >= 2:
+            self._processors_index = len(self.dicts) - 2
+        else:
+            self._processors_index = len(self.dicts) if self.dicts else 0
+    # Appeler la méthode originale
+    with _original_bind_template(self, template):
+        yield
+
+django.template.context.RequestContext.bind_template = _patched_bind_template
+
+def _patched_context_copy(self):
+    """Patch pour corriger le bug 'super' object has no attribute 'dicts' avec Python 3.14"""
+    # Sauvegarder tous les attributs importants AVANT de créer le duplicate
+    original_processors_index = getattr(self, '_processors_index', None)
+    original_processors = getattr(self, '_processors', None)
+    original_request = getattr(self, 'request', None)
+    
+    # Pour RequestContext, il faut passer request en argument
+    if original_request is not None:
+        # Créer le duplicate avec le request et le premier dict
+        duplicate = self.__class__(original_request, self.dicts[0] if self.dicts else {})
+    else:
+        duplicate = self.__class__(self.dicts[0] if self.dicts else {})
+    
+    # Copier dicts - cela va changer la longueur, donc _processors_index doit être ajusté
+    duplicate.dicts = self.dicts[:]
+    duplicate.autoescape = self.autoescape
+    
+    # Copier les autres attributs si nécessaire (pour RequestContext)
+    if original_request is not None:
+        duplicate.request = original_request
+    if original_processors is not None:
+        # _processors doit être un tuple, pas une liste
+        duplicate._processors = tuple(original_processors) if original_processors else ()
+    
+    # _processors_index doit TOUJOURS être défini pour RequestContext
+    # Il pointe vers l'index dans dicts où les processors sont stockés
+    if original_request is not None:
+        # Vérifier si c'est vraiment un RequestContext
+        from django.template.context import RequestContext
+        if isinstance(self, RequestContext) or isinstance(duplicate, RequestContext):
+            # Toujours définir _processors_index pour RequestContext
+            if original_processors_index is not None:
+                # Si l'original avait _processors_index, l'utiliser directement
+                duplicate._processors_index = original_processors_index
+            else:
+                # Sinon, le recalculer: dans RequestContext.__init__, c'est len(dicts) avant les deux update({})
+                # Après __init__, il y a 2 dicts de plus, donc normalement c'est len(dicts) - 2
+                # Mais si nous copions tous les dicts, _processors_index devrait être le même que l'original
+                # Si l'original n'a pas _processors_index, utilisons len(dicts) - 2
+                if len(duplicate.dicts) >= 2:
+                    duplicate._processors_index = len(duplicate.dicts) - 2
+                else:
+                    duplicate._processors_index = len(duplicate.dicts) if duplicate.dicts else 0
+        # S'assurer que _processors_index est toujours défini si request existe
+        if not hasattr(duplicate, '_processors_index'):
+            duplicate._processors_index = len(duplicate.dicts) - 2 if len(duplicate.dicts) >= 2 else len(duplicate.dicts) if duplicate.dicts else 0
+    return duplicate
+
+# Appliquer le patch aux deux classes de contexte
+django.template.context.Context.__copy__ = _patched_context_copy
+django.template.context.RequestContext.__copy__ = _patched_context_copy
 
 # Load local .env if present (not committed). This is safe in prod too (no-op if missing).
 load_dotenv()
@@ -12,6 +88,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 ENV_PATH = BASE_DIR / "security.env"
+
 load_dotenv(dotenv_path=ENV_PATH)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
@@ -91,18 +168,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-# Database (PostgreSQL by default; configure via env vars)
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ.get("DB_NAME", "budget"),
-        "USER": os.environ.get("DB_USER", "budget"),
-        "PASSWORD": os.environ.get("DB_PASSWORD", "budget"),
-        "HOST": os.environ.get("DB_HOST", "localhost"),
-        "PORT": os.environ.get("DB_PORT", "5432"),
-        "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", "60")),
-    }
-}
 
 AUTH_PASSWORD_VALIDATORS = [
     # Validation minimale - Permet des mots de passe simples (chiffres uniquement)
