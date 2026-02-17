@@ -1,5 +1,21 @@
 [
   {
+    "model": "budgets.filiere",
+    "pk": 1,
+    "fields": {
+      "nom": "BTP ET DE L'ECOCONSTRUCTION",
+      "nombre_max_budgets": 2
+    }
+  },
+  {
+    "model": "budgets.filiere",
+    "pk": 2,
+    "fields": {
+      "nom": "LA TRANSFORMATION AGROALIMENTAIRE DURABLE",
+      "nombre_max_budgets": 2
+    }
+  },
+  {
     "model": "budgets.localite",
     "pk": 2,
     "fields": {

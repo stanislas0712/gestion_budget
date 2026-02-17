@@ -11,6 +11,7 @@ from django.dispatch import receiver
 
 class Filiere(models.Model):
     nom = models.CharField(max_length=255, unique=True, verbose_name="Nom de la filière")
+    nombre_max_budgets = models.PositiveIntegerField(default=2, verbose_name="Nombre max de budgets par opérateur")
 
     class Meta:
         verbose_name = "Filière"

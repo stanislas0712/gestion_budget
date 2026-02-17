@@ -229,16 +229,23 @@ def budget_dashboard(request):
         date_debut__lte=now, date_fin__gte=now
     )
 
-    # Regrouper les budgets par appel à projet (pour les opérateurs)
-    budgets_par_appel = []
+    # Regrouper les budgets par filière (pour les opérateurs)
+    budgets_par_filiere = []
     if not is_admin:
-        appels_ids = budgets.values_list('appel_a_projet_id', flat=True).distinct()
-        appels_avec_budgets = AppelAProjet.objects.filter(id__in=appels_ids).order_by('-date_debut')
-        for appel in appels_avec_budgets:
-            budgets_appel = budgets.filter(appel_a_projet=appel)
-            budgets_par_appel.append({
-                'appel': appel,
-                'budgets': budgets_appel,
+        filieres_ids = budgets.values_list('filiere_id', flat=True).distinct()
+        filieres_avec_budgets = Filiere.objects.filter(id__in=filieres_ids).order_by('nom')
+        for filiere in filieres_avec_budgets:
+            budgets_filiere = budgets.filter(filiere=filiere)
+            budgets_par_filiere.append({
+                'filiere': filiere,
+                'budgets': budgets_filiere,
+            })
+        # Budgets sans filière
+        budgets_sans_filiere = budgets.filter(filiere__isnull=True)
+        if budgets_sans_filiere.exists():
+            budgets_par_filiere.append({
+                'filiere': None,
+                'budgets': budgets_sans_filiere,
             })
 
     # Listes pour les filtres
@@ -249,12 +256,12 @@ def budget_dashboard(request):
     # Formulaire de création dans le modal (opérateurs uniquement)
     budget_form = None
     if not is_admin and appels_actifs.exists():
-        budget_form = InfosBudgetCreationForm(appels_actifs=appels_actifs)
+        budget_form = InfosBudgetCreationForm(appels_actifs=appels_actifs, user=request.user)
 
     return render(request, 'budgets/dashboard.html', {
         'budgets': page_obj,
         'page_obj': page_obj,
-        'budgets_par_appel': budgets_par_appel,
+        'budgets_par_filiere': budgets_par_filiere,
         'query': query,
         'is_admin': is_admin,
         'appels_actifs': appels_actifs,
@@ -287,7 +294,7 @@ def creer_budget(request):
         return redirect('budgets:dashboard')
 
     if request.method == "POST":
-        form = InfosBudgetCreationForm(request.POST, appels_actifs=appels_actifs)
+        form = InfosBudgetCreationForm(request.POST, appels_actifs=appels_actifs, user=request.user)
         if form.is_valid():
             nouveau_budget = form.save(commit=False)
             nouveau_budget.created_by = request.user
@@ -300,14 +307,27 @@ def creer_budget(request):
             from django.core.paginator import Paginator
 
             now = tz.now()
-            budgets = InfosBudget.objects.none()
-            paginator = Paginator(budgets, 10)
+            user_budgets = InfosBudget.objects.filter(created_by=request.user)
+            paginator = Paginator(user_budgets, 10)
             page_obj = paginator.get_page(1)
             tous_appels = AppelAProjet.objects.all().order_by('-date_debut')
+
+            # Regrouper par filière
+            budgets_par_filiere = []
+            filieres_ids = user_budgets.values_list('filiere_id', flat=True).distinct()
+            for filiere in Filiere.objects.filter(id__in=filieres_ids).order_by('nom'):
+                budgets_par_filiere.append({
+                    'filiere': filiere,
+                    'budgets': user_budgets.filter(filiere=filiere),
+                })
+            budgets_sans = user_budgets.filter(filiere__isnull=True)
+            if budgets_sans.exists():
+                budgets_par_filiere.append({'filiere': None, 'budgets': budgets_sans})
 
             return render(request, 'budgets/dashboard.html', {
                 'budgets': page_obj,
                 'page_obj': page_obj,
+                'budgets_par_filiere': budgets_par_filiere,
                 'query': None,
                 'is_admin': False,
                 'appels_actifs': appels_actifs,

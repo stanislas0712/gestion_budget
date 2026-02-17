@@ -80,6 +80,14 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="col-md">
+                    <select name="filiere" class="form-select" title="Filtrer par filière">
+                        <option value="">Filière</option>
+                        {% for filiere in toutes_filieres %}
+                            <option value="{{ filiere.id }}" {% if filtre_filiere == filiere.id|stringformat:"d" %}selected{% endif %}>{{ filiere.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-auto d-flex gap-2">
                     <button type="submit" class="btn btn-xero" title="Filtrer">
                         <i class="bi bi-funnel"></i>
@@ -105,7 +113,7 @@
                         {% if budget.statut == 'brouillon' %}
                             <span class="badge bg-secondary badge-statut">Brouillon</span>
                         {% elif budget.statut == 'soumis' %}
-                            <span class="badge bg-dark badge-statut">Soumis</span>
+                            <span class="badge bg-primary badge-statut">Soumis</span>
                         {% elif budget.statut == 'modification_autorisee' %}
                             <span class="badge bg-warning text-dark badge-statut">Modification</span>
                         {% elif budget.statut == 'approuve' %}
@@ -189,17 +197,13 @@
     {% endif %}
 
     {% else %}
-    {# ===== VUE OPERATEUR : budgets groupés par appel à projet ===== #}
-    {% for groupe in budgets_par_appel %}
+    {# ===== VUE OPERATEUR : budgets groupés par filière ===== #}
+    {% for groupe in budgets_par_filiere %}
     <div class="mb-4">
         <div class="d-flex align-items-center mb-3">
-            <i class="bi bi-megaphone-fill me-2" style="color: var(--xero-teal);"></i>
-            <h5 class="fw-bold mb-0">{{ groupe.appel.nom }}</h5>
-            {% if groupe.appel.est_actif %}
-                <span class="badge bg-success ms-2">Actif</span>
-            {% else %}
-                <span class="badge bg-secondary ms-2">Termine</span>
-            {% endif %}
+            <i class="bi bi-mortarboard-fill me-2" style="color: var(--xero-teal);"></i>
+            <h5 class="fw-bold mb-0">{% if groupe.filiere %}{{ groupe.filiere.nom }}{% else %}Sans filière{% endif %}</h5>
+            <span class="badge bg-info ms-2">{{ groupe.budgets|length }} budget{{ groupe.budgets|length|pluralize }}</span>
         </div>
         <div class="row">
             {% for budget in groupe.budgets %}
@@ -211,7 +215,7 @@
                             {% if budget.statut == 'brouillon' %}
                                 <span class="badge bg-secondary badge-statut">Brouillon</span>
                             {% elif budget.statut == 'soumis' %}
-                                <span class="badge bg-dark badge-statut">Soumis</span>
+                                <span class="badge bg-primary badge-statut">Soumis</span>
                             {% elif budget.statut == 'modification_autorisee' %}
                                 <span class="badge bg-warning text-dark badge-statut">Modification</span>
                             {% elif budget.statut == 'approuve' %}
@@ -262,29 +266,49 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
                 <div class="modal-body p-4">
-                    {% if budget_form.errors %}
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {% if budget_form.non_field_errors %}
+                    <div class="alert alert-danger py-2" role="alert">
                         <i class="bi bi-exclamation-circle me-1"></i>
-                        Veuillez verifier les champs ci-dessous.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+                        {% for error in budget_form.non_field_errors %}{{ error }}{% endfor %}
                     </div>
                     {% endif %}
                     <div class="row">
                         <div class="col-12 mb-3">
                             <label class="form-label">Appel a projet <span class="text-danger">*</span></label>
                             {{ budget_form.appel_a_projet }}
+                            {% if budget_form.appel_a_projet.errors %}
+                                <small class="text-danger">{{ budget_form.appel_a_projet.errors.0 }}</small>
+                            {% endif %}
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Opérateur ou Consortium</label>
                             {{ budget_form.operateur }}
+                            {% if budget_form.operateur.errors %}
+                                <small class="text-danger">{{ budget_form.operateur.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Filière <span class="text-danger">*</span></label>
+                            {{ budget_form.filiere }}
+                            {% if budget_form.filiere.errors %}
+                                <small class="text-danger">{{ budget_form.filiere.errors.0 }}</small>
+                            {% endif %}
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
                             {{ budget_form.titre_projet }}
+                            {% if budget_form.titre_projet.errors %}
+                                <small class="text-danger">{{ budget_form.titre_projet.errors.0 }}</small>
+                            {% endif %}
                         </div>
                         <div class="col-12 mb-3">
                             <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
                             {{ budget_form.total_apprenants }}
+                            {% if budget_form.total_apprenants.errors %}
+                                <small class="text-danger">{{ budget_form.total_apprenants.errors.0 }}</small>
+                            {% else %}
+                                <small class="text-muted">Minimum 25 apprenants</small>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
