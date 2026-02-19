@@ -42,7 +42,7 @@ def inscription(request):
             user.is_staff = False
             user.is_superuser = False
             user.save()
-            login(request, user)
+            login(request, user, backend='apps.budgets.backends.EmailBackend')
             messages.success(request, f"Bienvenue ! Votre compte opérateur a été créé avec succès.")
             return redirect('budgets:dashboard')
     else:
@@ -459,7 +459,7 @@ def export_excel(request, uuid):
     info_labels = [
         ("Opérateur:", str(budget.operateur)),
         ("Filière:", str(budget.filiere) if budget.filiere else ""),
-        ("Apprenants:", str(budget.total_apprenants) + "     |     Sessions: " + str(budget.nombre_sessions)),
+        ("Apprenants:", str(budget.total_apprenants)),
     ]
     for label, value in info_labels:
         ws[f'A{row}'] = label
@@ -625,134 +625,172 @@ def export_pdf(request, uuid):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    from reportlab.lib.units import cm, mm
+    from reportlab.lib.enums import TA_CENTER
     from io import BytesIO
 
     budget = get_object_or_404(InfosBudget, uuid=uuid)
     budget.calculer_synthese()
 
     buffer = BytesIO()
+    page_w, page_h = landscape(A4)  # 29.7cm x 21cm
+    margin = 1.2 * cm
     doc = SimpleDocTemplate(
-        buffer, pagesize=landscape(A4),
-        rightMargin=1*cm, leftMargin=1*cm,
-        topMargin=1*cm, bottomMargin=1*cm
+        buffer, pagesize=(page_w, page_h),
+        rightMargin=margin, leftMargin=margin,
+        topMargin=margin, bottomMargin=margin
     )
+    usable_w = page_w - 2 * margin  # ~27.3cm
 
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
-        fontSize=16, textColor=colors.HexColor('#667eea'), alignment=TA_CENTER, spaceAfter=12)
+        fontSize=14, textColor=colors.HexColor('#667eea'), alignment=TA_CENTER, spaceAfter=10)
 
     elements = []
     elements.append(Paragraph(f"BUDGET - {budget.titre_projet}", title_style))
-    elements.append(Spacer(1, 0.3*cm))
+    elements.append(Spacer(1, 0.3 * cm))
 
-    # Infos générales
+    # --- Infos générales ---
     info_data = [
         ["Opérateur:", str(budget.operateur)],
         ["Filière:", str(budget.filiere) if budget.filiere else ""],
-        ["Apprenants:", f"{budget.total_apprenants}          Sessions: {budget.nombre_sessions}"],
+        ["Apprenants:", str(budget.total_apprenants)],
     ]
-    info_table = Table(info_data, colWidths=[3*cm, 24*cm])
+    info_table = Table(info_data, colWidths=[3 * cm, usable_w - 3 * cm], hAlign='LEFT')
     info_table.setStyle(TableStyle([
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
     elements.append(info_table)
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Spacer(1, 0.4 * cm))
 
-    # Couleurs
+    # --- Couleurs ---
     c_dark = colors.HexColor('#343a40')
     c_grey = colors.HexColor('#6c757d')
     c_info = colors.HexColor('#d1ecf1')
     c_warning = colors.HexColor('#fff3cd')
     c_green = colors.HexColor('#d4edda')
     c_primary = colors.HexColor('#b8daff')
-    c_success = colors.HexColor('#c3e6cb')
     c_header = colors.HexColor('#667eea')
 
-    # Tableau budget
+    # --- Largeurs colonnes (8 colonnes, total = usable_w) ---
+    # Code | Désignation | Unité | Qté | Prix Unit. | Coût Total | Co-financement | Budget demandé
+    c1 = 1.8 * cm   # Code
+    c6 = 3.2 * cm   # Coût Total
+    c7 = 3.5 * cm   # Co-financement
+    c8 = 3.5 * cm   # Budget demandé
+    c3 = 1.6 * cm   # Unité
+    c4 = 1.8 * cm   # Qté
+    c5 = 2.4 * cm   # Prix Unit.
+    c2 = usable_w - c1 - c3 - c4 - c5 - c6 - c7 - c8  # Désignation (reste)
+    col_widths = [c1, c2, c3, c4, c5, c6, c7, c8]
+
+    # --- Construction du tableau ---
     data = [["Code", "Désignation", "Unité", "Qté", "Prix Unit.", "Coût Total", "Co-financement", "Budget demandé"]]
+    row_styles = {}   # idx -> (bg, fg, bold)
+    span_rows = []    # (row_idx, col_start, col_end) pour les SPAN
 
-    # Tracking des indices pour le style
-    row_styles = {}  # index -> (bg_color, text_color, bold)
-
-    def add_row(values, bg=None, fg=colors.black, bold=False):
+    def add_row(values, bg=None, fg=colors.black, bold=False, span=None):
         idx = len(data)
         data.append(values)
         if bg or bold:
             row_styles[idx] = (bg, fg, bold)
+        if span:
+            span_rows.append((idx, span[0], span[1]))
 
     for section in budget.sections.all().order_by('code'):
-        add_row([section.code, section.libelle, "", "", "",
+        # Section (A, B) - fusionner colonnes 0-4 pour le libellé
+        add_row([f"{section.code} - {section.libelle}", "", "", "", "",
                  f"{section.cout_total_section:,.0f}", f"{section.co_financement_section:,.0f}",
-                 f"{section.budget_demande_section:,.0f}"], bg=c_dark, fg=colors.white, bold=True)
+                 f"{section.budget_demande_section:,.0f}"],
+                bg=c_dark, fg=colors.white, bold=True, span=(0, 4))
 
         for ligne in section.lignes.all().order_by('code'):
-            add_row([ligne.code, ligne.libelle, "", "", "",
+            # Ligne (A.1, A.2) - fusionner colonnes 0-4
+            add_row([f"  {ligne.code} - {ligne.libelle}", "", "", "", "",
                      f"{ligne.cout_total_ligne:,.0f}", f"{ligne.co_financement_ligne:,.0f}",
-                     f"{ligne.budget_demande_ligne:,.0f}"], bg=c_grey, fg=colors.white, bold=True)
+                     f"{ligne.budget_demande_ligne:,.0f}"],
+                    bg=c_grey, fg=colors.white, bold=True, span=(0, 4))
 
             for groupe in ligne.groupes.all():
-                add_row(["", f"  {groupe.libelle}", "", "", "", "", "", ""],
-                        bg=c_info, bold=True)
+                # Groupe - fusionner colonnes 0-4
+                add_row([f"    {groupe.libelle}", "", "", "", "", "", "", ""],
+                        bg=c_info, bold=True, span=(0, 4))
 
                 for article in groupe.articles.all():
-                    add_row(["", f"    {article.designation}", article.unite or "",
+                    add_row(["", f"      {article.designation}", article.unite or "",
                              f"{article.quantite:,.2f}", f"{article.prix_unitaire:,.0f}",
                              f"{article.cout_total_article:,.0f}", f"{article.co_financement:,.0f}",
                              f"{article.budget_demande_article:,.0f}"])
 
-        # Sous-total section
+        # Sous-total section - fusionner 0-4
         total_app = budget.total_apprenants or 1
         add_row([f"Sous total {section.code}", "", "", "", "",
                  f"{section.cout_total_section:,.0f}", f"{section.co_financement_section:,.0f}",
-                 f"{section.budget_demande_section:,.0f}"], bg=c_warning, bold=True)
+                 f"{section.budget_demande_section:,.0f}"],
+                bg=c_warning, bold=True, span=(0, 4))
 
+        # Effectif total apprenant - fusionner 0-4
         add_row(["Effectif total apprenant", "", "", "", "",
                  str(budget.total_apprenants), str(budget.total_apprenants),
-                 str(budget.total_apprenants)], bg=c_green, bold=True)
+                 str(budget.total_apprenants)],
+                bg=c_green, bold=True, span=(0, 4))
 
+        # Coût unitaire par apprenant - fusionner 0-4
         cout_unit = float(section.cout_total_section / total_app)
         cofin_unit = float(section.co_financement_section / total_app)
         bud_unit = float(section.budget_demande_section / total_app)
         add_row(["Coût unitaire par apprenant (FCFA)", "", "", "", "",
                  f"{cout_unit:,.0f}", f"{cofin_unit:,.0f}", f"{bud_unit:,.0f}"],
-                bg=c_green, bold=True)
+                bg=c_green, bold=True, span=(0, 4))
 
-    # SYNTHESE FINALE
-    add_row(["SYNTHESE", "", "", "", "", "", "", ""], bg=c_primary, bold=True)
+    # --- SYNTHESE FINALE ---
+    # Titre SYNTHESE - fusionner toutes les colonnes
+    add_row(["SYNTHESE", "", "", "", "", "", "", ""],
+            bg=c_primary, bold=True, span=(0, 7))
 
     total_app = budget.total_apprenants or 1
 
     add_row(["COUT TOTAL/BUDGET (A+B)", "", "", "", "",
              f"{budget.cout_total_global:,.0f}", f"{budget.co_financement_global:,.0f}",
-             f"{budget.budget_demande_global:,.0f}"], bg=c_info, bold=True)
+             f"{budget.budget_demande_global:,.0f}"],
+            bg=c_info, bold=True, span=(0, 4))
 
     add_row(["COUT UNITAIRE TOTAL /APPRENANT (FCFA)", "", "", "", "",
              f"{budget.cout_par_apprenant:,.0f}",
              f"{float(budget.co_financement_global / total_app):,.0f}",
              f"{float(budget.budget_demande_global / total_app):,.0f}"],
-            bg=c_warning, bold=True)
+            bg=c_warning, bold=True, span=(0, 4))
 
-    # Créer le tableau
-    col_widths = [2*cm, 6*cm, 1.5*cm, 1.5*cm, 2.5*cm, 3*cm, 3*cm, 3*cm]
+    # --- Créer le tableau ---
     table = Table(data, colWidths=col_widths, repeatRows=1)
 
     table_style_list = [
+        # En-tête
         ('BACKGROUND', (0, 0), (-1, 0), c_header),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 8),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        # Corps
         ('FONTSIZE', (0, 1), (-1, -1), 7),
-        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),    # Unité centré
+        ('ALIGN', (3, 1), (-1, -1), 'RIGHT'),     # Chiffres à droite
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
     ]
 
+    # Appliquer les SPAN (fusion de cellules)
+    for row_idx, col_start, col_end in span_rows:
+        table_style_list.append(('SPAN', (col_start, row_idx), (col_end, row_idx)))
+
+    # Appliquer les styles de lignes
     for idx, (bg, fg, bold) in row_styles.items():
         if bg:
             table_style_list.append(('BACKGROUND', (0, idx), (-1, idx), bg))
@@ -840,7 +878,7 @@ def export_word(request, uuid):
     info_data = [
         ("Opérateur:", str(budget.operateur)),
         ("Filière:", str(budget.filiere) if budget.filiere else ""),
-        ("Apprenants:", f"{budget.total_apprenants}     |     Sessions: {budget.nombre_sessions}"),
+        ("Apprenants:", f"{budget.total_apprenants}"),
     ]
     for i, (label, val) in enumerate(info_data):
         set_cell_text(info_table.rows[i].cells[0], label, bold=True, size=9)
