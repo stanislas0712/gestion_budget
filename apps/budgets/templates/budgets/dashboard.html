@@ -28,22 +28,9 @@
                 {% endif %}
 
                 {# Bouton télécharger le format #}
-                <div class="btn-group">
-                    <button type="button" class="btn btn-xero-outline dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-download me-1"></i>Télécharger le format
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'excel' %}">
-                            <i class="bi bi-file-earmark-excel text-success me-2"></i>Format Excel (.xlsx)
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'pdf' %}">
-                            <i class="bi bi-file-earmark-pdf text-danger me-2"></i>Format PDF (.pdf)
-                        </a></li>
-                        <li><a class="dropdown-item" href="{% url 'budgets:telecharger_template' 'word' %}">
-                            <i class="bi bi-file-earmark-word text-primary me-2"></i>Format Word (.docx)
-                        </a></li>
-                    </ul>
-                </div>
+                <a href="{% url 'budgets:telecharger_template' 'excel' %}" class="btn btn-xero-outline">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Télécharger le format
+                </a>
             </div>
         {% endif %}
     </div>

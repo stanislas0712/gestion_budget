@@ -126,7 +126,7 @@
             {% if form.errors %}
             <div class="alert-login">
                 <i class="bi bi-exclamation-circle me-1"></i>
-                Nom d'utilisateur ou mot de passe incorrect.
+                Email ou mot de passe incorrect.
             </div>
             {% endif %}
 
@@ -143,9 +143,9 @@
                 {% csrf_token %}
 
                 <div class="mb-3">
-                    <label for="id_username" class="form-label">Nom d'utilisateur</label>
-                    <input type="text" name="username" class="form-control" id="id_username"
-                           placeholder="Entrez votre identifiant" required autofocus>
+                    <label for="id_username" class="form-label">Email</label>
+                    <input type="email" name="username" class="form-control" id="id_username"
+                           placeholder="Entrez votre email" required autofocus>
                 </div>
 
                 <div class="mb-4">

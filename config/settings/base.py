@@ -192,6 +192,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SIMPLE_HISTORY_HISTORY_CHANGE_REASON_USE_TEXT_FIELD = True
 
 # Authentication
+AUTHENTICATION_BACKENDS = [
+    'apps.budgets.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/budgets/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'

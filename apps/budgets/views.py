@@ -583,18 +583,10 @@ def export_excel(request, uuid):
     row += 1
 
     total_app = budget.total_apprenants or 1
-    total_sessions = budget.nombre_sessions or 1
-    co_fin_pct = (float(budget.co_financement_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
-    budget_pct = (float(budget.budget_demande_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
 
     synthese_rows = [
         ("COUT TOTAL/BUDGET (A+B)", float(budget.cout_total_global), float(budget.co_financement_global), float(budget.budget_demande_global), synthese_info_fill, '#,##0'),
-        ("%", "", f"{co_fin_pct:.0f}%", f"{budget_pct:.0f}%", None, None),
-        ("EFFECTIF TOTAL APPRENANT", budget.total_apprenants, budget.total_apprenants, budget.total_apprenants, None, '#,##0'),
         ("COUT UNITAIRE TOTAL /APPRENANT (FCFA)", float(budget.cout_par_apprenant), float(budget.co_financement_global / total_app), float(budget.budget_demande_global / total_app), synthese_warn_fill, '#,##0'),
-        ("Nombre de session", budget.nombre_sessions, budget.nombre_sessions, budget.nombre_sessions, None, None),
-        ("Nombre d'apprenant/Session", float(budget.apprenants_par_session), float(budget.apprenants_par_session), float(budget.apprenants_par_session), None, '#,##0'),
-        ("Coût total/Session", float(budget.cout_par_session), float(budget.co_financement_global / total_sessions), float(budget.budget_demande_global / total_sessions), synthese_success_fill, '#,##0'),
     ]
 
     for label, f_val, g_val, h_val, fill, nf in synthese_rows:
@@ -734,40 +726,16 @@ def export_pdf(request, uuid):
     add_row(["SYNTHESE", "", "", "", "", "", "", ""], bg=c_primary, bold=True)
 
     total_app = budget.total_apprenants or 1
-    total_sessions = budget.nombre_sessions or 1
-    co_fin_pct = (float(budget.co_financement_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
-    budget_pct = (float(budget.budget_demande_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
 
     add_row(["COUT TOTAL/BUDGET (A+B)", "", "", "", "",
              f"{budget.cout_total_global:,.0f}", f"{budget.co_financement_global:,.0f}",
              f"{budget.budget_demande_global:,.0f}"], bg=c_info, bold=True)
-
-    add_row(["%", "", "", "", "", "", f"{co_fin_pct:.0f}%", f"{budget_pct:.0f}%"], bold=True)
-
-    add_row(["EFFECTIF TOTAL APPRENANT", "", "", "", "",
-             str(budget.total_apprenants), str(budget.total_apprenants),
-             str(budget.total_apprenants)], bold=True)
 
     add_row(["COUT UNITAIRE TOTAL /APPRENANT (FCFA)", "", "", "", "",
              f"{budget.cout_par_apprenant:,.0f}",
              f"{float(budget.co_financement_global / total_app):,.0f}",
              f"{float(budget.budget_demande_global / total_app):,.0f}"],
             bg=c_warning, bold=True)
-
-    add_row(["Nombre de session", "", "", "", "",
-             str(budget.nombre_sessions), str(budget.nombre_sessions),
-             str(budget.nombre_sessions)], bold=True)
-
-    add_row(["Nombre d'apprenant/Session", "", "", "", "",
-             f"{float(budget.apprenants_par_session):,.0f}",
-             f"{float(budget.apprenants_par_session):,.0f}",
-             f"{float(budget.apprenants_par_session):,.0f}"], bold=True)
-
-    add_row(["Coût total/Session", "", "", "", "",
-             f"{float(budget.cout_par_session):,.0f}",
-             f"{float(budget.co_financement_global / total_sessions):,.0f}",
-             f"{float(budget.budget_demande_global / total_sessions):,.0f}"],
-            bg=c_success, bold=True)
 
     # Créer le tableau
     col_widths = [2*cm, 6*cm, 1.5*cm, 1.5*cm, 2.5*cm, 3*cm, 3*cm, 3*cm]
@@ -946,9 +914,6 @@ def export_word(request, uuid):
                     bold=True, bg_color='b8daff', size=10)
 
     total_app = budget.total_apprenants or 1
-    total_sessions = budget.nombre_sessions or 1
-    co_fin_pct = (float(budget.co_financement_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
-    budget_pct = (float(budget.budget_demande_global) / float(budget.cout_total_global) * 100) if budget.cout_total_global else 0
 
     r = table.add_row().cells
     style_row_cells(r, ["COUT TOTAL/BUDGET (A+B)", "", "", "", "",
@@ -956,35 +921,10 @@ def export_word(request, uuid):
         f"{budget.budget_demande_global:,.0f}"], bold=True, bg_color='d1ecf1')
 
     r = table.add_row().cells
-    style_row_cells(r, ["%", "", "", "", "", "", f"{co_fin_pct:.0f}%", f"{budget_pct:.0f}%"], bold=True)
-
-    r = table.add_row().cells
-    style_row_cells(r, ["EFFECTIF TOTAL APPRENANT", "", "", "", "",
-        str(budget.total_apprenants), str(budget.total_apprenants),
-        str(budget.total_apprenants)], bold=True)
-
-    r = table.add_row().cells
     style_row_cells(r, ["COUT UNITAIRE TOTAL /APPRENANT (FCFA)", "", "", "", "",
         f"{budget.cout_par_apprenant:,.0f}",
         f"{float(budget.co_financement_global / total_app):,.0f}",
         f"{float(budget.budget_demande_global / total_app):,.0f}"], bold=True, bg_color='fff3cd')
-
-    r = table.add_row().cells
-    style_row_cells(r, ["Nombre de session", "", "", "", "",
-        str(budget.nombre_sessions), str(budget.nombre_sessions),
-        str(budget.nombre_sessions)], bold=True)
-
-    r = table.add_row().cells
-    style_row_cells(r, ["Nombre d'apprenant/Session", "", "", "", "",
-        f"{float(budget.apprenants_par_session):,.0f}",
-        f"{float(budget.apprenants_par_session):,.0f}",
-        f"{float(budget.apprenants_par_session):,.0f}"], bold=True)
-
-    r = table.add_row().cells
-    style_row_cells(r, ["Coût total/Session", "", "", "", "",
-        f"{float(budget.cout_par_session):,.0f}",
-        f"{float(budget.co_financement_global / total_sessions):,.0f}",
-        f"{float(budget.budget_demande_global / total_sessions):,.0f}"], bold=True, bg_color='c3e6cb')
 
     # Sauvegarder
     buffer = BytesIO()
