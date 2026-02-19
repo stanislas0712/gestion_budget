@@ -86,7 +86,7 @@ class InfosBudgetCreationForm(forms.ModelForm):
             self.fields['appel_a_projet'].empty_label = "-- Choisir un appel à projet --"
         self.fields['filiere'].required = True
         self.fields['filiere'].empty_label = "-- Choisir une filière --"
-        self.fields['total_apprenants'].help_text = "Minimum 25 apprenants"
+        self.fields['total_apprenants'].help_text = "Minimum 50 apprenants"
 
         # Déterminer les filières pleines et utiliser le widget custom
         filieres_pleines = {}

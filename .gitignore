@@ -1,7 +1,6 @@
 .venv/
 __pycache__/
 *.pyc
-.env
 
 # Base de données SQLite (développement)
 db.sqlite3
