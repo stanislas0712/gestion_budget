@@ -21,6 +21,7 @@ SCRIPTS=(
     "fix-csrf-error.sh"
     "fix-502-bad-gateway.sh"
     "deploy-web.sh"
+    "deploy-web-safe.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

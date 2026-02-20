@@ -24,6 +24,20 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
+# Vérifier si on doit corriger l'erreur ContainerConfig d'abord
+echo -e "${BLUE}🔍 Vérification de l'état Docker...${NC}"
+if docker ps -a --filter "name=budget_web" --format "{{.Names}}" | grep -q "budget_web"; then
+    CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' budget_web 2>/dev/null || echo "unknown")
+    if [ "$CONTAINER_STATUS" != "running" ]; then
+        echo -e "${YELLOW}⚠️  Conteneur web trouvé mais non démarré (statut: $CONTAINER_STATUS)${NC}"
+        echo "   Nettoyage des conteneurs problématiques..."
+        docker-compose rm -f web 2>/dev/null || true
+        docker ps -a --filter "name=budget_web" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+        echo -e "${GREEN}✅ Conteneurs problématiques supprimés${NC}"
+    fi
+fi
+echo ""
+
 # Étape 1: Sauvegarder les modifications locales (optionnel)
 echo -e "${BLUE}1️⃣  Vérification des modifications locales...${NC}"
 if ! git diff-index --quiet HEAD --; then
@@ -80,14 +94,28 @@ else
 fi
 echo ""
 
-# Étape 4: Arrêter uniquement le conteneur web
-echo -e "${BLUE}4️⃣  Arrêt du conteneur web...${NC}"
+# Étape 4: Arrêter et supprimer le conteneur web (pour éviter l'erreur ContainerConfig)
+echo -e "${BLUE}4️⃣  Arrêt et suppression du conteneur web...${NC}"
+
+# Arrêter le conteneur s'il est en cours d'exécution
 if docker-compose ps web 2>/dev/null | grep -q "Up"; then
     docker-compose stop web
-    echo -e "${GREEN}✅ Conteneur web arrêté${NC}"
-else
-    echo -e "${YELLOW}⚠️  Conteneur web n'était pas démarré${NC}"
+    echo "   Conteneur web arrêté"
 fi
+
+# Supprimer le conteneur web (même s'il est arrêté) pour éviter l'erreur ContainerConfig
+CONTAINER_ID=$(docker ps -a --filter "name=budget_web" --format "{{.ID}}" 2>/dev/null | head -1)
+if [ -n "$CONTAINER_ID" ]; then
+    echo "   Suppression du conteneur web (ID: $CONTAINER_ID)..."
+    docker rm -f "$CONTAINER_ID" 2>/dev/null || true
+    echo -e "${GREEN}✅ Conteneur web supprimé${NC}"
+else
+    echo -e "${YELLOW}⚠️  Aucun conteneur web trouvé${NC}"
+fi
+
+# Supprimer aussi les conteneurs avec des noms similaires (pour les anciens conteneurs)
+docker ps -a --filter "name=budget_web" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+
 echo ""
 
 # Étape 5: Reconstruire l'image du service web
@@ -104,13 +132,27 @@ else
 fi
 echo ""
 
-# Étape 6: Démarrer le conteneur web
-echo -e "${BLUE}6️⃣  Démarrage du conteneur web...${NC}"
-if docker-compose up -d web; then
-    echo -e "${GREEN}✅ Conteneur web démarré${NC}"
+# Étape 6: Démarrer le conteneur web (créer un nouveau conteneur)
+echo -e "${BLUE}6️⃣  Création et démarrage du conteneur web...${NC}"
+
+# Utiliser --force-recreate pour forcer la création d'un nouveau conteneur
+if docker-compose up -d --force-recreate --no-deps web; then
+    echo -e "${GREEN}✅ Conteneur web créé et démarré${NC}"
 else
     echo -e "${RED}❌ Erreur lors du démarrage${NC}"
-    exit 1
+    echo "   Tentative alternative..."
+    
+    # Tentative alternative: supprimer complètement et recréer
+    docker-compose rm -f web 2>/dev/null || true
+    docker ps -a --filter "name=budget_web" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+    
+    if docker-compose up -d --no-deps web; then
+        echo -e "${GREEN}✅ Conteneur web créé et démarré (méthode alternative)${NC}"
+    else
+        echo -e "${RED}❌ Erreur persistante lors du démarrage${NC}"
+        echo "   Vérifiez les logs: docker-compose logs web"
+        exit 1
+    fi
 fi
 echo ""
 

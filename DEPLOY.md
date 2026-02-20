@@ -10,7 +10,17 @@ Ce guide explique comment mettre à jour le conteneur web Django en production s
 
 ## 🚀 Déploiement Automatique (Recommandé)
 
-### Méthode 1: Script de déploiement
+### Méthode 1: Script de déploiement sécurisé (Recommandé si erreur ContainerConfig)
+
+```bash
+# Rendre le script exécutable
+chmod +x deploy-web-safe.sh
+
+# Lancer le déploiement (gère automatiquement l'erreur ContainerConfig)
+./deploy-web-safe.sh
+```
+
+### Méthode 2: Script de déploiement standard
 
 ```bash
 # Rendre le script exécutable
@@ -19,6 +29,8 @@ chmod +x deploy-web.sh
 # Lancer le déploiement
 ./deploy-web.sh
 ```
+
+**Note:** Si vous obtenez l'erreur `ContainerConfig`, utilisez `deploy-web-safe.sh` qui nettoie automatiquement les conteneurs problématiques.
 
 Le script va :
 1. ✅ Sauvegarder vos modifications locales (optionnel)
@@ -38,14 +50,17 @@ Si vous préférez faire le déploiement manuellement :
 # 1. Récupérer le nouveau code
 git pull
 
-# 2. Arrêter uniquement le conteneur web
+# 2. Arrêter et supprimer le conteneur web (pour éviter ContainerConfig)
 docker-compose stop web
+docker-compose rm -f web
+# Ou supprimer manuellement:
+docker ps -a --filter "name=budget_web" --format "{{.ID}}" | xargs -r docker rm -f
 
 # 3. Reconstruire l'image du service web
 docker-compose build web
 
-# 4. Redémarrer le conteneur web
-docker-compose up -d web
+# 4. Créer et démarrer le conteneur web (force la création d'un nouveau conteneur)
+docker-compose up -d --force-recreate --no-deps web
 
 # 5. Appliquer les migrations (si nécessaire)
 docker-compose exec web python manage.py migrate
