@@ -15,6 +15,7 @@ SCRIPTS=(
     "git-pull-safe.sh"
     "fix-docker-error.sh"
     "fix-ssl-challenge.sh"
+    "configure-nginx.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

@@ -77,7 +77,11 @@ crontab -e
 ## ✅ Commandes Utiles
 
 ```bash
-# Démarrer l'application
+# Configurer Nginx manuellement
+chmod +x configure-nginx.sh
+./configure-nginx.sh
+
+# Démarrer l'application Django (Docker)
 docker-compose --profile production up -d
 
 # Vérifier SSL
@@ -86,8 +90,20 @@ curl -I https://budget.bkdb.bf
 # Renouveler SSL manuellement
 ./renew-ssl.sh
 
-# Voir les logs
-docker-compose logs -f nginx
+# Voir les logs Nginx
+sudo tail -f /var/log/nginx/budget-error.log
+sudo tail -f /var/log/nginx/budget-access.log
+
+# Tester la configuration Nginx
+sudo nginx -t
+
+# Redémarrer Nginx
+sudo systemctl reload nginx
+# ou
+sudo systemctl restart nginx
+
+# Voir la configuration Nginx
+sudo cat /etc/nginx/sites-available/budget.bkdb.bf
 
 # Pull Git en sécurité (gère les conflits)
 chmod +x git-pull-safe.sh
