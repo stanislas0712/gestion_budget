@@ -14,6 +14,7 @@ SCRIPTS=(
     "fix-certbot-permissions.sh"
     "git-pull-safe.sh"
     "fix-docker-error.sh"
+    "fix-ssl-challenge.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

@@ -94,6 +94,44 @@ chmod +x git-pull-safe.sh
 
 ## 🔧 Dépannage
 
+### Erreur Let's Encrypt "Connection refused"
+
+Si vous obtenez l'erreur `Connection refused` lors de l'obtention du certificat SSL :
+
+```bash
+# Solution rapide - Script de diagnostic
+chmod +x fix-ssl-challenge.sh
+./fix-ssl-challenge.sh
+```
+
+**Causes possibles:**
+1. Nginx n'est pas démarré
+2. Le port 80 n'est pas ouvert dans le firewall
+3. Le domaine ne pointe pas vers le serveur
+4. Nginx n'est pas configuré pour servir les challenges ACME
+
+**Vérifications manuelles:**
+```bash
+# 1. Vérifier que Nginx est démarré
+docker-compose ps nginx
+
+# 2. Vérifier que le port 80 est ouvert
+sudo ufw status | grep 80
+# ou
+sudo firewall-cmd --list-ports
+
+# 3. Vérifier le DNS
+dig budget.bkdb.bf +short
+# Doit retourner l'IP de votre serveur
+
+# 4. Tester l'accès HTTP
+curl -I http://budget.bkdb.bf
+
+# 5. Tester le challenge manuellement
+echo "test" > certbot/www/.well-known/acme-challenge/test.txt
+curl http://budget.bkdb.bf/.well-known/acme-challenge/test.txt
+```
+
 ### Erreur Docker "ContainerConfig"
 
 Si vous obtenez l'erreur `KeyError: 'ContainerConfig'` :
