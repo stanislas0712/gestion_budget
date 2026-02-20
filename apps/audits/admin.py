@@ -1,19 +1,11 @@
-from auditlog import get_logentry_model
-from auditlog.admin import LogEntryAdmin as DefaultLogEntryAdmin
 from auditlog.registry import auditlog
 from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import IntegrationEvent, AuditLog
 
-# Override auditlog's LogEntry admin to add pagination
-LogEntry = get_logentry_model()
-admin.site.unregister(LogEntry)
-
-
-@admin.register(LogEntry)
-class LogEntryAdmin(DefaultLogEntryAdmin):
-    list_per_page = 10
+# Note: Personnalisation de l'admin LogEntry désactivée car l'API de django-auditlog a changé
+# Si nécessaire, on peut personnaliser via les settings d'auditlog
 
 
 @admin.register(IntegrationEvent)

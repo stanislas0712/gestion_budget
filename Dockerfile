@@ -3,7 +3,8 @@ FROM python:3.9-alpine
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     ENV_TYPE=production \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PATH="/opt/venv/bin:$PATH"
 
 # Installation des dépendances système
 RUN apk add --no-cache \
@@ -22,10 +23,16 @@ RUN apk add --no-cache \
     curl \
     build-base \
     dos2unix \
+    bash \
     # Pour psycopg2
     musl-dev \
-    # Pour Pillow
-    jpeg-dev \
+    # Pour PostGIS/GDAL (Django GIS) - nécessite le dépôt communautaire
+    gdal \
+    gdal-dev \
+    geos \
+    geos-dev \
+    proj \
+    proj-dev \
     && pip install --no-cache-dir --upgrade pip
 
 
@@ -49,13 +56,25 @@ RUN python -m venv /opt/venv && \
 
 
 
+# Copie du script d'entrée AVANT de copier tout le reste
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-RUN chmod +x /docker-entrypoint.sh && \
-    # Convertir les fins de ligne Windows en Unix si nécessaire
-    sed -i 's/\r$//' /docker-entrypoint.sh
+# Convertir les fins de ligne et rendre exécutable
+RUN dos2unix /docker-entrypoint.sh 2>/dev/null || sed -i 's/\r$//' /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh && \
+    # Vérifier que le fichier existe et est exécutable
+    ls -la /docker-entrypoint.sh && \
+    test -f /docker-entrypoint.sh && test -x /docker-entrypoint.sh
 
+# Copie du reste du code
 COPY . .
+
+# S'assurer que le fichier d'entrée est toujours présent et exécutable après COPY . .
+# et que bash est disponible
+RUN test -f /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh && \
+    which bash || (apk add --no-cache bash && which bash) && \
+    echo "✅ docker-entrypoint.sh est prêt: $(ls -la /docker-entrypoint.sh)"
 
 # Point d'entrée
 ENTRYPOINT ["/docker-entrypoint.sh"]

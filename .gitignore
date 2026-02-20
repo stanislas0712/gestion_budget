@@ -6,3 +6,10 @@ __pycache__/
 db.sqlite3
 db.sqlite3-journal
 *.db
+
+# Certificats SSL Let's Encrypt (ne jamais commiter)
+certbot/
+*.pem
+*.key
+*.crt
+*.csr

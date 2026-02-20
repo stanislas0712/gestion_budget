@@ -128,6 +128,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Doit être après SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -182,6 +183,12 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# WhiteNoise configuration pour servir les fichiers statiques en production
+# Utiliser CompressedStaticFilesStorage au lieu de CompressedManifestStaticFilesStorage
+# pour éviter les erreurs avec les fichiers référencés mais absents (comme Bootswatch)
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+WHITENOISE_USE_FINDERS = True  # Permet de servir les fichiers même sans collectstatic
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"

@@ -21,7 +21,9 @@ urlpatterns = [
 
     # Applications
     path('budgets/', include('apps.budgets.urls')),
-]+ static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+]
 
+# WhiteNoise sert les fichiers statiques en production, donc on n'a besoin de static() qu'en DEBUG
 if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
