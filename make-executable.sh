@@ -18,6 +18,7 @@ SCRIPTS=(
     "configure-nginx.sh"
     "fix-django-allowed-hosts.sh"
     "quick-fix-containerconfig.sh"
+    "fix-csrf-error.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

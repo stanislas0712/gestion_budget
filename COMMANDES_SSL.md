@@ -112,6 +112,40 @@ chmod +x git-pull-safe.sh
 
 ## 🔧 Dépannage
 
+### Erreur Django CSRF "La vérification CSRF a échoué"
+
+Si vous obtenez l'erreur `La vérification CSRF a échoué` en production :
+
+```bash
+# Solution rapide
+chmod +x fix-csrf-error.sh
+./fix-csrf-error.sh
+```
+
+**Causes possibles:**
+1. `CSRF_TRUSTED_ORIGINS` n'est pas configuré (requis depuis Django 4.0+)
+2. `DJANGO_USE_SSL` n'est pas à `true` en production
+3. Nginx ne transmet pas correctement `X-Forwarded-Proto`
+4. Les cookies CSRF ne sont pas sécurisés
+
+**Solutions manuelles:**
+
+```bash
+# 1. Mettre à jour .env
+# Assurez-vous que .env contient:
+DJANGO_USE_SSL=true
+DOMAIN_NAME=budget.bkdb.bf
+
+# 2. Vérifier la configuration Nginx
+sudo grep "X-Forwarded-Proto" /etc/nginx/sites-available/budget.bkdb.bf
+# Doit afficher: proxy_set_header X-Forwarded-Proto $scheme;
+
+# 3. Redémarrer Django
+docker-compose restart web
+```
+
+**Note:** `CSRF_TRUSTED_ORIGINS` est maintenant configuré automatiquement dans `config/settings/prod.py` en fonction de `DOMAIN_NAME`.
+
 ### Erreur Django "Invalid HTTP_HOST header"
 
 Si vous obtenez l'erreur `Invalid HTTP_HOST header: 'localhost:8000'` :
