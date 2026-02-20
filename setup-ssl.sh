@@ -11,22 +11,61 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}🔐 Configuration SSL pour budget.bkdb.bf${NC}"
 
-# Vérifier que le domaine est défini
+# Obtenir le chemin du script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Charger les variables d'environnement depuis .env
+if [ -f ".env" ]; then
+    echo "📄 Chargement des variables depuis .env..."
+    # Désactiver temporairement set -e pour le chargement
+    set +e
+    # Exporter toutes les variables depuis .env
+    # Utiliser set -a pour exporter automatiquement toutes les variables définies
+    set -a
+    # Source le fichier .env (ignorer les erreurs)
+    source .env 2>/dev/null || true
+    set +a
+    set -e  # Réactiver set -e
+    echo "✅ Variables chargées"
+    
+    # Afficher les valeurs chargées pour debug (optionnel)
+    if [ "${DEBUG:-}" = "1" ]; then
+        echo "   DOMAIN_NAME=${DOMAIN_NAME:-non défini}"
+        echo "   LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:-non défini}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Fichier .env non trouvé${NC}"
+fi
+
+# Vérifier que le domaine est défini (après chargement de .env)
 DOMAIN="${DOMAIN_NAME:-budget.bkdb.bf}"
 EMAIL="${LETSENCRYPT_EMAIL:-}"
 
 if [ -z "$EMAIL" ]; then
     echo -e "${RED}❌ Erreur: LETSENCRYPT_EMAIL doit être défini dans .env${NC}"
     echo "   Ajoutez: LETSENCRYPT_EMAIL=votre-email@example.com"
+    echo ""
+    echo "💡 Vérifiez que votre fichier .env contient:"
+    echo "   LETSENCRYPT_EMAIL=votre-email@example.com"
+    echo ""
+    echo "🔍 Debug: Vérification du fichier .env..."
+    if [ -f ".env" ]; then
+        echo "   Fichier .env trouvé"
+        if grep -q "LETSENCRYPT_EMAIL" .env; then
+            echo "   Ligne LETSENCRYPT_EMAIL trouvée:"
+            grep "LETSENCRYPT_EMAIL" .env | head -1
+        else
+            echo "   ⚠️  Ligne LETSENCRYPT_EMAIL non trouvée dans .env"
+        fi
+    else
+        echo "   ⚠️  Fichier .env non trouvé"
+    fi
     exit 1
 fi
 
 echo "📋 Domaine: $DOMAIN"
 echo "📧 Email: $EMAIL"
-
-# Obtenir le chemin du script
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
 # Créer les répertoires nécessaires
 echo "📁 Création des répertoires..."
