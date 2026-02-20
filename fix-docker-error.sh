@@ -43,12 +43,13 @@ echo ""
 
 # Étape 2: Supprimer les conteneurs problématiques
 echo -e "${BLUE}🗑️  Étape 2: Suppression des conteneurs problématiques...${NC}"
+
 # Supprimer tous les conteneurs arrêtés
 if docker container prune -f 2>/dev/null; then
     echo "   Conteneurs orphelins supprimés"
 fi
 
-# Supprimer spécifiquement les conteneurs du projet
+# Supprimer spécifiquement les conteneurs du projet (méthode 1)
 CONTAINER_IDS=$(docker ps -a --filter "name=budget_" --format "{{.ID}}" 2>/dev/null || true)
 if [ -n "$CONTAINER_IDS" ]; then
     echo "$CONTAINER_IDS" | while read -r id; do
@@ -59,6 +60,19 @@ if [ -n "$CONTAINER_IDS" ]; then
 else
     echo "   Aucun conteneur budget_ à supprimer"
 fi
+
+# Supprimer les conteneurs par ID spécifique (méthode 2 - pour l'erreur ContainerConfig)
+PROBLEMATIC_CONTAINER="85ba11eb0464_budget_web"
+if docker ps -a --format "{{.ID}}" | grep -q "$PROBLEMATIC_CONTAINER" 2>/dev/null; then
+    echo "   Suppression du conteneur problématique $PROBLEMATIC_CONTAINER..."
+    docker rm -f "$PROBLEMATIC_CONTAINER" 2>/dev/null || true
+fi
+
+# Supprimer tous les conteneurs arrêtés (méthode 3 - plus agressive)
+echo "   Nettoyage complet des conteneurs arrêtés..."
+docker ps -a --filter "status=exited" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+docker ps -a --filter "status=created" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+
 echo -e "${GREEN}✅ Conteneurs supprimés${NC}"
 echo ""
 
@@ -71,12 +85,18 @@ else
 fi
 echo ""
 
-# Étape 4: Supprimer les images corrompues (optionnel)
+# Étape 4: Supprimer les images corrompues (optionnel mais recommandé pour cette erreur)
 echo -e "${YELLOW}💡 Appuyez sur Ctrl+C pour annuler à tout moment${NC}"
-read -p "Voulez-vous supprimer et reconstruire les images? (o/N): " rebuild_images
+echo -e "${YELLOW}⚠️  Pour l'erreur ContainerConfig, la reconstruction des images est recommandée${NC}"
+read -p "Voulez-vous supprimer et reconstruire les images? (O/n): " rebuild_images
+rebuild_images=${rebuild_images:-O}
 
 if [[ $rebuild_images =~ ^[OoYy]$ ]]; then
     echo -e "${BLUE}🔄 Étape 4: Reconstruction des images...${NC}"
+    
+    # Arrêter tous les conteneurs avant de supprimer les images
+    docker-compose --profile production down 2>/dev/null || true
+    
     # Supprimer les images du projet
     IMAGE_IDS=$(docker images --filter "reference=*budget*" --format "{{.ID}}" 2>/dev/null || true)
     if [ -n "$IMAGE_IDS" ]; then
@@ -86,6 +106,9 @@ if [[ $rebuild_images =~ ^[OoYy]$ ]]; then
             fi
         done
     fi
+    
+    # Supprimer aussi les images sans tag (dangling)
+    docker image prune -f 2>/dev/null || true
     
     # Reconstruire les images (peut prendre du temps, mais peut être interrompu)
     echo "   Reconstruction en cours (peut prendre plusieurs minutes)..."

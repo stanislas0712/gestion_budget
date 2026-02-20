@@ -233,7 +233,7 @@ echo -e "${GREEN}✅ Répertoires créés${NC}"
 
 # Rendre les scripts exécutables
 echo "🔧 Rendre les scripts exécutables..."
-SCRIPTS=("setup-ssl.sh" "renew-ssl.sh" "fix-certbot-permissions.sh" "make-executable.sh" "git-pull-safe.sh" "fix-docker-error.sh" "fix-ssl-challenge.sh" "configure-nginx.sh" "fix-django-allowed-hosts.sh")
+SCRIPTS=("setup-ssl.sh" "renew-ssl.sh" "fix-certbot-permissions.sh" "make-executable.sh" "git-pull-safe.sh" "fix-docker-error.sh" "fix-ssl-challenge.sh" "configure-nginx.sh" "fix-django-allowed-hosts.sh" "quick-fix-containerconfig.sh")
 for script in "${SCRIPTS[@]}"; do
     if [ -f "$script" ]; then
         if chmod +x "$script" 2>/dev/null; then

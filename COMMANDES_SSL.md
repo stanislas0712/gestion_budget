@@ -185,7 +185,11 @@ curl http://budget.bkdb.bf/.well-known/acme-challenge/test.txt
 Si vous obtenez l'erreur `KeyError: 'ContainerConfig'` :
 
 ```bash
-# Solution rapide
+# Solution rapide (recommandée)
+chmod +x quick-fix-containerconfig.sh
+./quick-fix-containerconfig.sh
+
+# Ou solution interactive
 chmod +x fix-docker-error.sh
 ./fix-docker-error.sh
 ```
