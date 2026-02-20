@@ -13,6 +13,7 @@ SCRIPTS=(
     "renew-ssl.sh"
     "fix-certbot-permissions.sh"
     "git-pull-safe.sh"
+    "fix-docker-error.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

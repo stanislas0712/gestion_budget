@@ -94,6 +94,33 @@ chmod +x git-pull-safe.sh
 
 ## 🔧 Dépannage
 
+### Erreur Docker "ContainerConfig"
+
+Si vous obtenez l'erreur `KeyError: 'ContainerConfig'` :
+
+```bash
+# Solution rapide
+chmod +x fix-docker-error.sh
+./fix-docker-error.sh
+```
+
+**Solutions manuelles:**
+
+```bash
+# 1. Arrêter et supprimer tous les conteneurs
+docker-compose --profile production down
+docker container prune -f
+
+# 2. Supprimer les conteneurs problématiques
+docker ps -a --filter "name=budget_" --format "{{.ID}}" | xargs -r docker rm -f
+
+# 3. Reconstruire les images
+docker-compose --profile production build --no-cache
+
+# 4. Redémarrer
+docker-compose --profile production up -d
+```
+
 ### Erreur "Permission denied" avec les scripts
 
 Si vous obtenez `Permission denied` lors de l'exécution d'un script :
