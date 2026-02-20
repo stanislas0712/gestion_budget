@@ -16,11 +16,13 @@ chmod +x install.sh
 Le script `install.sh` installe automatiquement :
 - ✅ Git
 - ✅ Docker et Docker Compose
-- ✅ Nginx
-- ✅ Certbot
+- ✅ Nginx (installé localement sur Ubuntu)
+- ✅ Certbot (installé localement sur Ubuntu)
 - ✅ Configuration du firewall
 - ✅ Configuration SSL (optionnel)
 - ✅ Renouvellement automatique (optionnel)
+
+**Note importante:** Nginx et Certbot sont installés **localement sur le serveur Ubuntu**, pas dans Docker. Seul Django (web) tourne dans Docker.
 
 ## 📋 Installation Manuelle
 
@@ -112,8 +114,8 @@ chmod +x fix-ssl-challenge.sh
 
 **Vérifications manuelles:**
 ```bash
-# 1. Vérifier que Nginx est démarré
-docker-compose ps nginx
+# 1. Vérifier que Nginx est démarré (localement)
+sudo systemctl status nginx
 
 # 2. Vérifier que le port 80 est ouvert
 sudo ufw status | grep 80
@@ -128,7 +130,7 @@ dig budget.bkdb.bf +short
 curl -I http://budget.bkdb.bf
 
 # 5. Tester le challenge manuellement
-echo "test" > certbot/www/.well-known/acme-challenge/test.txt
+echo "test" | sudo tee /var/www/certbot/.well-known/acme-challenge/test.txt
 curl http://budget.bkdb.bf/.well-known/acme-challenge/test.txt
 ```
 

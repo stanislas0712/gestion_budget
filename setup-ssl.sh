@@ -1,15 +1,19 @@
 #!/bin/bash
 # Script d'installation et de configuration SSL avec Let's Encrypt
+# Nginx et Certbot doivent être installés localement sur le serveur Ubuntu
 
-set -e
+set +e  # Ne pas arrêter sur toutes les erreurs
 
 # Couleurs pour les messages
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}🔐 Configuration SSL pour budget.bkdb.bf${NC}"
+echo -e "${BLUE}📋 Nginx et Certbot doivent être installés localement sur le serveur${NC}"
+echo ""
 
 # Obtenir le chemin du script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -67,70 +71,113 @@ fi
 echo "📋 Domaine: $DOMAIN"
 echo "📧 Email: $EMAIL"
 
-# Créer les répertoires nécessaires
-echo "📁 Création des répertoires..."
-mkdir -p certbot/conf certbot/www
+# Vérifier que Nginx est installé localement
+echo "🔍 Vérification de Nginx..."
+if ! command -v nginx &> /dev/null; then
+    echo -e "${RED}❌ Nginx n'est pas installé${NC}"
+    echo "   Installez avec: sudo apt install -y nginx"
+    exit 1
+fi
+echo -e "${GREEN}✅ Nginx installé: $(nginx -v 2>&1)${NC}"
 
-# Essayer de changer les permissions (peut échouer si les répertoires appartiennent à root)
-if chmod -R 755 certbot 2>/dev/null; then
-    echo "✅ Permissions configurées"
-elif sudo chmod -R 755 certbot 2>/dev/null; then
-    echo "✅ Permissions configurées (avec sudo)"
-    # Changer le propriétaire pour éviter les problèmes futurs
-    sudo chown -R $USER:$USER certbot 2>/dev/null || true
+# Vérifier que Certbot est installé localement
+echo "🔍 Vérification de Certbot..."
+if ! command -v certbot &> /dev/null; then
+    echo -e "${RED}❌ Certbot n'est pas installé${NC}"
+    echo "   Installez avec: sudo apt install -y certbot python3-certbot-nginx"
+    exit 1
+fi
+echo -e "${GREEN}✅ Certbot installé: $(certbot --version)${NC}"
+
+# Créer le répertoire pour les challenges ACME
+echo "📁 Création du répertoire pour les challenges..."
+sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+sudo chown -R www-data:www-data /var/www/certbot
+sudo chmod -R 755 /var/www/certbot
+echo -e "${GREEN}✅ Répertoire créé: /var/www/certbot${NC}"
+
+# Étape 1: Configurer Nginx pour les challenges ACME
+echo "📝 Configuration de Nginx pour les challenges ACME..."
+
+# Créer la configuration Nginx pour le domaine
+NGINX_SITE="/etc/nginx/sites-available/budget.bkdb.bf"
+NGINX_SITE_ENABLED="/etc/nginx/sites-enabled/budget.bkdb.bf"
+
+# Créer la configuration temporaire (HTTP uniquement pour le challenge)
+sudo tee "$NGINX_SITE" > /dev/null <<EOF
+server {
+    listen 80;
+    server_name budget.bkdb.bf www.budget.bkdb.bf;
+    client_max_body_size 100M;
+
+    # Logs
+    access_log /var/log/nginx/budget-access.log;
+    error_log /var/log/nginx/budget-error.log;
+
+    # Acme Challenge pour Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Proxy vers Django (Docker)
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_redirect off;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+# Activer le site
+sudo ln -sf "$NGINX_SITE" "$NGINX_SITE_ENABLED" 2>/dev/null || true
+
+# Tester la configuration Nginx
+echo "🔍 Test de la configuration Nginx..."
+if sudo nginx -t; then
+    echo -e "${GREEN}✅ Configuration Nginx valide${NC}"
 else
-    echo "⚠️  Impossible de changer les permissions (non critique)"
-    # Essayer de changer le propriétaire si les répertoires existent déjà
-    if [ -d "certbot" ]; then
-        sudo chown -R $USER:$USER certbot 2>/dev/null || true
-    fi
-fi
-
-# Étape 1: Utiliser la configuration temporaire sans SSL
-echo "📝 Configuration temporaire Nginx (sans SSL)..."
-if [ -f nginx.conf ]; then
-    cp nginx.conf nginx.conf.backup
-fi
-cp nginx-ssl.conf nginx.conf
-
-# Étape 2: Démarrer les services
-echo "🚀 Démarrage des services..."
-docker-compose --profile production up -d web
-echo "   Attente du démarrage de web..."
-sleep 10
-
-# Vérifier que web est prêt
-if ! docker-compose ps web | grep -q "Up"; then
-    echo -e "${RED}❌ Erreur: Le service web n'a pas démarré${NC}"
-    echo "   Vérifiez les logs: docker-compose logs web"
+    echo -e "${RED}❌ Erreur dans la configuration Nginx${NC}"
     exit 1
 fi
 
-echo "🚀 Démarrage de Nginx..."
-docker-compose --profile production up -d nginx
-echo "   Attente du démarrage de Nginx..."
-sleep 10
+# Étape 2: Démarrer/Redémarrer Nginx
+echo "🚀 Démarrage/Redémarrage de Nginx..."
+if sudo systemctl is-active --quiet nginx; then
+    echo "   Redémarrage de Nginx..."
+    sudo systemctl reload nginx || sudo systemctl restart nginx
+else
+    echo "   Démarrage de Nginx..."
+    sudo systemctl start nginx
+    sudo systemctl enable nginx
+fi
 
-# Vérifier que Nginx est prêt
-if ! docker-compose ps nginx | grep -q "Up"; then
-    echo -e "${RED}❌ Erreur: Nginx n'a pas démarré${NC}"
-    echo "   Vérifiez les logs: docker-compose logs nginx"
+sleep 3
+
+# Vérifier que Nginx est actif
+if sudo systemctl is-active --quiet nginx; then
+    echo -e "${GREEN}✅ Nginx est actif${NC}"
+else
+    echo -e "${RED}❌ Erreur: Nginx n'est pas actif${NC}"
+    echo "   Vérifiez les logs: sudo journalctl -u nginx -n 50"
     exit 1
 fi
 
-# Vérifier que Nginx écoute sur le port 80
-echo "🔍 Vérification de l'accessibilité de Nginx..."
-if docker-compose exec -T nginx nginx -t 2>/dev/null; then
-    echo "✅ Configuration Nginx valide"
+# Vérifier que le service web Django (Docker) est démarré
+echo "🔍 Vérification du service web Django..."
+if docker-compose ps web 2>/dev/null | grep -q "Up"; then
+    echo -e "${GREEN}✅ Service web Django démarré${NC}"
 else
-    echo -e "${YELLOW}⚠️  Erreur de configuration Nginx (peut être normal)${NC}"
-fi
-
-# Tester l'accès HTTP local
-if curl -s -o /dev/null -w "%{http_code}" http://localhost/.well-known/acme-challenge/test 2>/dev/null | grep -qE "200|404|301"; then
-    echo "✅ Nginx accessible localement"
-else
-    echo -e "${YELLOW}⚠️  Nginx peut ne pas être accessible localement${NC}"
+    echo -e "${YELLOW}⚠️  Service web Django non démarré, démarrage...${NC}"
+    docker-compose --profile production up -d web
+    sleep 5
 fi
 
 # Vérifier que le domaine pointe vers ce serveur
@@ -140,7 +187,7 @@ DOMAIN_IP=$(dig +short "$DOMAIN" 2>/dev/null | tail -1 || nslookup "$DOMAIN" 2>/
 
 if [ "$SERVER_IP" != "non détecté" ] && [ "$DOMAIN_IP" != "non détecté" ]; then
     if [ "$SERVER_IP" = "$DOMAIN_IP" ]; then
-        echo "✅ Le domaine $DOMAIN pointe vers ce serveur ($SERVER_IP)"
+        echo -e "${GREEN}✅ Le domaine $DOMAIN pointe vers ce serveur ($SERVER_IP)${NC}"
     else
         echo -e "${YELLOW}⚠️  Le domaine $DOMAIN pointe vers $DOMAIN_IP mais ce serveur est $SERVER_IP${NC}"
         echo "   Vérifiez votre configuration DNS"
@@ -149,33 +196,46 @@ else
     echo -e "${YELLOW}⚠️  Impossible de vérifier le DNS automatiquement${NC}"
 fi
 
+# Tester l'accès HTTP local
+echo "🔍 Test de l'accès HTTP local..."
+if curl -s -o /dev/null -w "%{http_code}" http://localhost/.well-known/acme-challenge/test 2>/dev/null | grep -qE "200|404|301"; then
+    echo -e "${GREEN}✅ Nginx accessible localement${NC}"
+else
+    echo -e "${YELLOW}⚠️  Nginx peut ne pas être accessible localement${NC}"
+fi
+
 echo ""
-echo "⏳ Attente supplémentaire pour que Nginx soit complètement prêt..."
+echo "⏳ Attente pour que Nginx soit complètement prêt..."
 sleep 5
 
 # Étape 3: Vérifier que le répertoire de challenge est accessible
 echo "🔍 Vérification du répertoire de challenge..."
-mkdir -p certbot/www/.well-known/acme-challenge
-chmod -R 755 certbot/www 2>/dev/null || true
+if [ -d "/var/www/certbot/.well-known/acme-challenge" ]; then
+    echo -e "${GREEN}✅ Répertoire /var/www/certbot/.well-known/acme-challenge existe${NC}"
+    
+    # Tester l'écriture
+    TEST_FILE="/var/www/certbot/.well-known/acme-challenge/test-$(date +%s).txt"
+    if echo "test" | sudo tee "$TEST_FILE" > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Répertoire accessible en écriture${NC}"
+        sudo rm -f "$TEST_FILE"
+    else
+        echo -e "${YELLOW}⚠️  Problème d'accès au répertoire${NC}"
+        sudo chown -R www-data:www-data /var/www/certbot
+        sudo chmod -R 755 /var/www/certbot
+    fi
+else
+    echo -e "${RED}❌ Répertoire manquant, création...${NC}"
+    sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+    sudo chown -R www-data:www-data /var/www/certbot
+    sudo chmod -R 755 /var/www/certbot
+fi
 
-# Tester l'écriture dans le répertoire
-TEST_FILE="certbot/www/.well-known/acme-challenge/test-$(date +%s).txt"
-echo "test" > "$TEST_FILE" 2>/dev/null || {
-    echo -e "${RED}❌ Erreur: Impossible d'écrire dans certbot/www${NC}"
-    echo "   Vérifiez les permissions: sudo chown -R \$USER:\$USER certbot"
-    exit 1
-}
-rm -f "$TEST_FILE"
-
-# Étape 4: Obtenir le certificat Let's Encrypt
-echo "🔐 Obtention du certificat SSL..."
+# Étape 4: Obtenir le certificat Let's Encrypt avec Certbot local
+echo "🔐 Obtention du certificat SSL avec Certbot..."
 echo "   Cela peut prendre 1-2 minutes..."
 echo ""
 
-if docker run --rm \
-  -v "$SCRIPT_DIR/certbot/conf:/etc/letsencrypt" \
-  -v "$SCRIPT_DIR/certbot/www:/var/www/certbot" \
-  certbot/certbot certonly \
+if sudo certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
   --email "$EMAIL" \
@@ -185,7 +245,7 @@ if docker run --rm \
   -d "$DOMAIN" \
   -d "www.$DOMAIN" 2>&1 | tee /tmp/certbot-output.log; then
     echo ""
-    echo -e "${GREEN}✅ Certificat demandé avec succès${NC}"
+    echo -e "${GREEN}✅ Certificat obtenu avec succès${NC}"
 else
     CERTBOT_ERROR=$(cat /tmp/certbot-output.log 2>/dev/null || echo "")
     echo ""
@@ -201,14 +261,14 @@ else
         echo "4. Nginx n'est pas configuré pour servir /.well-known/acme-challenge/"
         echo ""
         echo "Solutions:"
-        echo "1. Vérifiez que Nginx est démarré: docker-compose ps nginx"
-        echo "2. Vérifiez les logs Nginx: docker-compose logs nginx"
+        echo "1. Vérifiez que Nginx est démarré: sudo systemctl status nginx"
+        echo "2. Vérifiez les logs Nginx: sudo tail -f /var/log/nginx/error.log"
         echo "3. Testez manuellement: curl http://$DOMAIN/.well-known/acme-challenge/test"
         echo "4. Utilisez le script de diagnostic: ./fix-ssl-challenge.sh"
         echo ""
         echo "Vérifications rapides:"
         echo "  - Port 80 ouvert: sudo ufw status | grep 80"
-        echo "  - Nginx écoute: docker-compose exec nginx netstat -tlnp | grep 80"
+        echo "  - Nginx écoute: sudo netstat -tlnp | grep :80"
         echo "  - DNS correct: dig $DOMAIN +short"
     fi
     rm -f /tmp/certbot-output.log
@@ -217,7 +277,7 @@ fi
 rm -f /tmp/certbot-output.log
 
 # Vérifier que le certificat a été créé
-if [ ! -f "certbot/conf/live/$DOMAIN/fullchain.pem" ]; then
+if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     echo -e "${RED}❌ Erreur: Le certificat n'a pas été créé${NC}"
     echo ""
     echo "Vérifiez:"
@@ -229,24 +289,95 @@ fi
 
 echo -e "${GREEN}✅ Certificat créé avec succès${NC}"
 
-# Étape 5: Restaurer la configuration SSL complète
-echo "📝 Activation de la configuration SSL..."
-if [ -f nginx.conf.backup ]; then
-    # La configuration SSL est déjà dans nginx.conf (écrite par le script)
-    # On doit juste s'assurer qu'elle est correcte
-    echo "✅ Configuration SSL activée"
+# Étape 5: Mettre à jour la configuration Nginx pour HTTPS
+echo "📝 Configuration Nginx pour HTTPS..."
+
+# Mettre à jour la configuration Nginx avec SSL
+sudo tee "$NGINX_SITE" > /dev/null <<EOF
+# Redirection HTTP vers HTTPS
+server {
+    listen 80;
+    server_name budget.bkdb.bf www.budget.bkdb.bf;
+    client_max_body_size 100M;
+
+    # Logs
+    access_log /var/log/nginx/budget-access.log;
+    error_log /var/log/nginx/budget-error.log;
+
+    # Acme Challenge pour Let's Encrypt (renouvellement)
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirection vers HTTPS
+    location / {
+        return 301 https://\$server_name\$request_uri;
+    }
+}
+
+# Configuration HTTPS
+server {
+    listen 443 ssl http2;
+    server_name budget.bkdb.bf www.budget.bkdb.bf;
+    client_max_body_size 100M;
+
+    # Logs
+    access_log /var/log/nginx/budget-ssl-access.log;
+    error_log /var/log/nginx/budget-ssl-error.log;
+
+    # Certificats SSL Let's Encrypt
+    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
+
+    # Configuration SSL moderne et sécurisée
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    # Headers de sécurité
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+
+    # Proxy vers Django (Docker)
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_redirect off;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
+
+# Tester la configuration
+echo "🔍 Test de la configuration Nginx..."
+if sudo nginx -t; then
+    echo -e "${GREEN}✅ Configuration Nginx valide${NC}"
 else
-    echo -e "${YELLOW}⚠️  Attention: nginx.conf doit contenir la configuration SSL${NC}"
-    echo "   Vérifiez que nginx.conf contient la configuration HTTPS"
+    echo -e "${RED}❌ Erreur dans la configuration Nginx${NC}"
+    exit 1
 fi
 
 # Étape 6: Redémarrer Nginx
 echo "🔄 Redémarrage de Nginx..."
-docker-compose --profile production restart nginx
+sudo systemctl reload nginx || sudo systemctl restart nginx
 
-# Étape 7: Vérifier la configuration
-echo "✅ Vérification de la configuration..."
-docker-compose exec nginx nginx -t
+# Vérifier que Nginx est toujours actif
+if sudo systemctl is-active --quiet nginx; then
+    echo -e "${GREEN}✅ Nginx redémarré avec succès${NC}"
+else
+    echo -e "${RED}❌ Erreur: Nginx n'est pas actif après redémarrage${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}✅ Configuration SSL terminée avec succès!${NC}"
 echo ""

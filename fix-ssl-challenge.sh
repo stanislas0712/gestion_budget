@@ -30,20 +30,28 @@ echo -e "${BLUE}📋 Vérifications:${NC}"
 echo "   Domaine: $DOMAIN"
 echo ""
 
-# 1. Vérifier que Nginx est démarré
+# 1. Vérifier que Nginx est installé et démarré localement
 echo -e "${BLUE}1️⃣  Vérification de Nginx...${NC}"
-if docker-compose ps nginx | grep -q "Up"; then
-    echo -e "${GREEN}✅ Nginx est démarré${NC}"
+if ! command -v nginx &> /dev/null; then
+    echo -e "${RED}❌ Nginx n'est pas installé${NC}"
+    echo "   Installez avec: sudo apt install -y nginx"
+    exit 1
+fi
+
+if sudo systemctl is-active --quiet nginx; then
+    echo -e "${GREEN}✅ Nginx est démarré (local)${NC}"
+    echo "   Version: $(nginx -v 2>&1)"
 else
     echo -e "${RED}❌ Nginx n'est pas démarré${NC}"
     echo "   Démarrage de Nginx..."
-    docker-compose --profile production up -d nginx
-    sleep 5
-    if docker-compose ps nginx | grep -q "Up"; then
+    sudo systemctl start nginx
+    sudo systemctl enable nginx
+    sleep 3
+    if sudo systemctl is-active --quiet nginx; then
         echo -e "${GREEN}✅ Nginx démarré${NC}"
     else
         echo -e "${RED}❌ Impossible de démarrer Nginx${NC}"
-        echo "   Vérifiez les logs: docker-compose logs nginx"
+        echo "   Vérifiez les logs: sudo journalctl -u nginx -n 50"
         exit 1
     fi
 fi
@@ -51,77 +59,76 @@ echo ""
 
 # 2. Vérifier la configuration Nginx pour les challenges
 echo -e "${BLUE}2️⃣  Vérification de la configuration Nginx...${NC}"
-if grep -q "/.well-known/acme-challenge" nginx.conf 2>/dev/null; then
-    echo -e "${GREEN}✅ Configuration ACME trouvée dans nginx.conf${NC}"
+NGINX_SITE="/etc/nginx/sites-available/budget.bkdb.bf"
+NGINX_SITE_ENABLED="/etc/nginx/sites-enabled/budget.bkdb.bf"
+
+if [ -f "$NGINX_SITE" ] && sudo grep -q "/.well-known/acme-challenge" "$NGINX_SITE" 2>/dev/null; then
+    echo -e "${GREEN}✅ Configuration ACME trouvée dans $NGINX_SITE${NC}"
+elif [ -f "$NGINX_SITE_ENABLED" ] && sudo grep -q "/.well-known/acme-challenge" "$NGINX_SITE_ENABLED" 2>/dev/null; then
+    echo -e "${GREEN}✅ Configuration ACME trouvée dans $NGINX_SITE_ENABLED${NC}"
 else
-    echo -e "${RED}❌ Configuration ACME manquante dans nginx.conf${NC}"
-    echo "   Ajout de la configuration..."
-    
-    # Créer une sauvegarde
-    cp nginx.conf nginx.conf.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
-    
-    # Vérifier si nginx.conf existe et contient déjà un serveur sur le port 80
-    if [ -f "nginx.conf" ] && grep -q "listen 80" nginx.conf; then
-        # Ajouter la location pour ACME si elle n'existe pas
-        if ! grep -q "/.well-known/acme-challenge" nginx.conf; then
-            # Insérer la location avant la redirection
-            sed -i '/location \//i\        location /.well-known/acme-challenge/ {\n            root /var/www/certbot;\n        }' nginx.conf 2>/dev/null || {
-                echo -e "${YELLOW}⚠️  Impossible de modifier nginx.conf automatiquement${NC}"
-                echo "   Ajoutez manuellement dans nginx.conf:"
-                echo "   location /.well-known/acme-challenge/ {"
-                echo "       root /var/www/certbot;"
-                echo "   }"
-            }
-        fi
-    else
-        echo -e "${YELLOW}⚠️  Configuration HTTP manquante${NC}"
-        echo "   Utilisez nginx-ssl.conf comme base pour la configuration temporaire"
-    fi
+    echo -e "${YELLOW}⚠️  Configuration ACME non trouvée${NC}"
+    echo "   Le script setup-ssl.sh créera automatiquement la configuration"
+fi
+
+# Vérifier la configuration Nginx
+if sudo nginx -t 2>/dev/null; then
+    echo -e "${GREEN}✅ Configuration Nginx valide${NC}"
+else
+    echo -e "${RED}❌ Erreur dans la configuration Nginx${NC}"
+    sudo nginx -t
 fi
 echo ""
 
-# 3. Vérifier que le répertoire certbot/www existe et est accessible
-echo -e "${BLUE}3️⃣  Vérification du répertoire certbot/www...${NC}"
-if [ -d "certbot/www" ]; then
-    echo -e "${GREEN}✅ Répertoire certbot/www existe${NC}"
+# 3. Vérifier que le répertoire /var/www/certbot existe et est accessible
+echo -e "${BLUE}3️⃣  Vérification du répertoire /var/www/certbot...${NC}"
+if [ -d "/var/www/certbot" ]; then
+    echo -e "${GREEN}✅ Répertoire /var/www/certbot existe${NC}"
     # Créer un fichier de test
-    mkdir -p certbot/www/.well-known/acme-challenge
-    echo "test" > certbot/www/.well-known/acme-challenge/test.txt
-    chmod -R 755 certbot/www 2>/dev/null || true
+    sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+    echo "test" | sudo tee /var/www/certbot/.well-known/acme-challenge/test.txt > /dev/null
+    sudo chown -R www-data:www-data /var/www/certbot
+    sudo chmod -R 755 /var/www/certbot
     echo -e "${GREEN}✅ Répertoire accessible${NC}"
 else
-    echo -e "${RED}❌ Répertoire certbot/www n'existe pas${NC}"
+    echo -e "${RED}❌ Répertoire /var/www/certbot n'existe pas${NC}"
     echo "   Création du répertoire..."
-    mkdir -p certbot/www/.well-known/acme-challenge
-    chmod -R 755 certbot/www
+    sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+    sudo chown -R www-data:www-data /var/www/certbot
+    sudo chmod -R 755 /var/www/certbot
     echo -e "${GREEN}✅ Répertoire créé${NC}"
 fi
 echo ""
 
-# 4. Vérifier que le volume est bien monté dans Nginx
-echo -e "${BLUE}4️⃣  Vérification du montage du volume dans Nginx...${NC}"
-if docker-compose --profile production config | grep -q "certbot/www"; then
-    echo -e "${GREEN}✅ Volume certbot/www monté${NC}"
+# 4. Vérifier que Certbot est installé localement
+echo -e "${BLUE}4️⃣  Vérification de Certbot...${NC}"
+if ! command -v certbot &> /dev/null; then
+    echo -e "${RED}❌ Certbot n'est pas installé${NC}"
+    echo "   Installez avec: sudo apt install -y certbot python3-certbot-nginx"
 else
-    echo -e "${YELLOW}⚠️  Volume certbot/www non trouvé dans docker-compose.yml${NC}"
-    echo "   Vérifiez que docker-compose.yml contient:"
-    echo "   volumes:"
-    echo "     - ./certbot/www:/var/www/certbot:ro"
+    echo -e "${GREEN}✅ Certbot installé: $(certbot --version)${NC}"
 fi
 echo ""
 
-# 5. Tester l'accès HTTP depuis le conteneur
-echo -e "${BLUE}5️⃣  Test d'accès HTTP depuis le conteneur Nginx...${NC}"
-TEST_FILE="certbot/www/.well-known/acme-challenge/test-$(date +%s).txt"
-echo "test-content" > "$TEST_FILE"
-chmod 644 "$TEST_FILE" 2>/dev/null || true
+# 5. Tester l'accès HTTP local
+echo -e "${BLUE}5️⃣  Test d'accès HTTP local...${NC}"
+TEST_FILE="/var/www/certbot/.well-known/acme-challenge/test-$(date +%s).txt"
+echo "test-content" | sudo tee "$TEST_FILE" > /dev/null
+sudo chmod 644 "$TEST_FILE" 2>/dev/null || true
 
-# Tester depuis l'intérieur du conteneur
-if docker-compose exec -T nginx test -f /var/www/certbot/.well-known/acme-challenge/$(basename "$TEST_FILE") 2>/dev/null; then
-    echo -e "${GREEN}✅ Fichier accessible depuis le conteneur${NC}"
+# Tester l'accès local
+if [ -f "$TEST_FILE" ]; then
+    echo -e "${GREEN}✅ Fichier créé: $TEST_FILE${NC}"
+    # Tester l'accès HTTP
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost/.well-known/acme-challenge/$(basename "$TEST_FILE")" 2>/dev/null || echo "000")
+    if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "404" ]; then
+        echo -e "${GREEN}✅ Fichier accessible via HTTP (code: $HTTP_CODE)${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Fichier non accessible via HTTP (code: $HTTP_CODE)${NC}"
+    fi
+    sudo rm -f "$TEST_FILE"
 else
-    echo -e "${RED}❌ Fichier non accessible depuis le conteneur${NC}"
-    echo "   Vérifiez le montage du volume"
+    echo -e "${RED}❌ Impossible de créer le fichier de test${NC}"
 fi
 echo ""
 
@@ -170,9 +177,17 @@ echo ""
 
 # 8. Redémarrer Nginx pour appliquer les changements
 echo -e "${BLUE}8️⃣  Redémarrage de Nginx...${NC}"
-docker-compose --profile production restart nginx
-sleep 3
-echo -e "${GREEN}✅ Nginx redémarré${NC}"
+if sudo systemctl is-active --quiet nginx; then
+    sudo systemctl reload nginx || sudo systemctl restart nginx
+    sleep 3
+    if sudo systemctl is-active --quiet nginx; then
+        echo -e "${GREEN}✅ Nginx redémarré${NC}"
+    else
+        echo -e "${RED}❌ Erreur lors du redémarrage de Nginx${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Nginx n'est pas actif${NC}"
+fi
 echo ""
 
 # 9. Résumé et recommandations
@@ -191,7 +206,7 @@ echo "2. Vérifiez que le port 80 est accessible depuis l'extérieur:"
 echo "   curl -I http://$DOMAIN"
 echo ""
 echo "3. Testez manuellement le challenge:"
-echo "   echo 'test' > certbot/www/.well-known/acme-challenge/test.txt"
+echo "   echo 'test' | sudo tee /var/www/certbot/.well-known/acme-challenge/test.txt"
 echo "   curl http://$DOMAIN/.well-known/acme-challenge/test.txt"
 echo ""
 echo "4. Si tout est OK, relancez setup-ssl.sh:"
