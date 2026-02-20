@@ -86,6 +86,10 @@ curl -I https://budget.bkdb.bf
 
 # Voir les logs
 docker-compose logs -f nginx
+
+# Pull Git en sécurité (gère les conflits)
+chmod +x git-pull-safe.sh
+./git-pull-safe.sh
 ```
 
 ## 🔧 Dépannage
