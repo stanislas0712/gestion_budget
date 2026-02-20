@@ -1181,8 +1181,12 @@ Système de Gestion de Budget""",
 @login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
+    import logging
     from django.conf import settings
     from pathlib import Path
+    from django.http import HttpResponse, Http404
+    
+    logger = logging.getLogger(__name__)
     
     # Définir les chemins des templates
     templates_dir = Path(settings.MEDIA_ROOT) / 'templates'
@@ -1195,6 +1199,7 @@ def telecharger_template(request, format):
     }
     
     if format not in fichiers:
+        logger.warning(f"Format invalide demandé: {format}")
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
@@ -1202,6 +1207,11 @@ def telecharger_template(request, format):
     
     # Vérifier si le fichier existe
     if not fichier_path.exists():
+        logger.error(f"Fichier template non trouvé: {fichier_path}")
+        logger.error(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        logger.error(f"templates_dir existe: {templates_dir.exists()}")
+        if templates_dir.exists():
+            logger.error(f"Contenu de templates_dir: {list(templates_dir.iterdir())}")
         messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
         return redirect('budgets:dashboard')
     
@@ -1214,14 +1224,38 @@ def telecharger_template(request, format):
             'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         }
         
+        # Ouvrir le fichier en mode binaire
+        # FileResponse fermera automatiquement le fichier à la fin de la réponse
+        fichier = open(fichier_path, 'rb')
+        
+        # Créer la réponse avec FileResponse
         response = FileResponse(
-            open(fichier_path, 'rb'),
-            content_type=content_types[format],
+            fichier,
+            content_type=content_types.get(format, 'application/octet-stream'),
             as_attachment=True,
             filename=fichiers[format]
         )
         
+        # Ajouter le Content-Length pour un meilleur support navigateur
+        try:
+            file_size = fichier_path.stat().st_size
+            response['Content-Length'] = str(file_size)
+        except OSError as e:
+            logger.warning(f"Impossible d'obtenir la taille du fichier: {e}")
+            file_size = None
+        
+        logger.info(f"Téléchargement du fichier: {fichier_path} (format: {format}, taille: {file_size if file_size else 'inconnue'})")
+        
         return response
+    except FileNotFoundError:
+        logger.error(f"Fichier non trouvé: {fichier_path}")
+        messages.error(request, "Le fichier demandé n'a pas été trouvé.")
+        return redirect('budgets:dashboard')
+    except PermissionError:
+        logger.error(f"Permission refusée pour: {fichier_path}")
+        messages.error(request, "Erreur de permission lors de l'accès au fichier.")
+        return redirect('budgets:dashboard')
     except Exception as e:
+        logger.exception(f"Erreur lors du téléchargement du fichier {fichier_path}: {str(e)}")
         messages.error(request, f"Erreur lors du téléchargement du fichier: {str(e)}")
         return redirect('budgets:dashboard')

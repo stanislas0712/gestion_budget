@@ -64,6 +64,28 @@ if echo "$@" | grep -q "gunicorn"; then
     $PYTHON_CMD manage.py collectstatic --noinput || true
 fi
 
+# S'assurer que les templates sont disponibles dans le volume media
+echo "📄 Vérification des templates dans media/templates..."
+TEMPLATES_DIR="/app/media/templates"
+TEMPLATES_SOURCE="/app/media/templates"
+
+# Créer le répertoire templates s'il n'existe pas
+mkdir -p "$TEMPLATES_DIR"
+
+# Copier les templates depuis le code source si le volume est vide
+if [ -d "$TEMPLATES_SOURCE" ] && [ "$(ls -A $TEMPLATES_SOURCE 2>/dev/null)" ]; then
+    # Si le répertoire source contient des fichiers, les copier dans le volume
+    for template_file in "$TEMPLATES_SOURCE"/*; do
+        if [ -f "$template_file" ]; then
+            filename=$(basename "$template_file")
+            if [ ! -f "$TEMPLATES_DIR/$filename" ]; then
+                echo "   Copie du template: $filename"
+                cp "$template_file" "$TEMPLATES_DIR/$filename"
+            fi
+        fi
+    done
+fi
+
 # Créer un superutilisateur si les variables d'environnement sont définies
 # Vérifier si au moins EMAIL et PASSWORD sont définis (PHONE est optionnel)
 if [ -n "$DJANGO_SUPERUSER_EMAIL" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
