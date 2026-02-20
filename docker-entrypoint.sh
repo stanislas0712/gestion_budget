@@ -105,9 +105,9 @@ fi
 # Créer un superutilisateur par défaut si aucun superutilisateur n'existe (fallback)
 echo "👤 Vérification et création du superutilisateur..."
 # Utiliser les variables d'environnement si disponibles, sinon valeurs par défaut
-DEFAULT_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
-DEFAULT_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-DEFAULT_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+DEFAULT_USERNAME=${DJANGO_SUPERUSER_USERNAME:-Benkadibaara}
+DEFAULT_EMAIL=${DJANGO_SUPERUSER_EMAIL:-rapenegsama@gmail.com}
+DEFAULT_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-P@ssw0rd75675420}
 
 $PYTHON_CMD manage.py shell << EOF || true
 from django.contrib.auth import get_user_model
