@@ -1,6 +1,6 @@
 import threading
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -1181,11 +1181,11 @@ Système de Gestion de Budget""",
 @login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
-    import os
     from django.conf import settings
+    from pathlib import Path
     
     # Définir les chemins des templates
-    templates_dir = os.path.join(settings.MEDIA_ROOT, 'templates')
+    templates_dir = Path(settings.MEDIA_ROOT) / 'templates'
     
     # Mapping des formats vers les fichiers
     fichiers = {
@@ -1198,25 +1198,30 @@ def telecharger_template(request, format):
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
-    fichier_path = os.path.join(templates_dir, fichiers[format])
+    fichier_path = templates_dir / fichiers[format]
     
     # Vérifier si le fichier existe
-    if not os.path.exists(fichier_path):
+    if not fichier_path.exists():
         messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
         return redirect('budgets:dashboard')
     
-    # Préparer la réponse de téléchargement
-    with open(fichier_path, 'rb') as f:
-        response = HttpResponse(f.read())
-    
-    # Définir le type de contenu selon le format
-    content_types = {
-        'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'pdf': 'application/pdf',
-        'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    }
-    
-    response['Content-Type'] = content_types[format]
-    response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
-    
-    return response
+    # Utiliser FileResponse pour un meilleur streaming des fichiers
+    try:
+        # Définir le type de contenu selon le format
+        content_types = {
+            'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'pdf': 'application/pdf',
+            'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+        
+        response = FileResponse(
+            open(fichier_path, 'rb'),
+            content_type=content_types[format],
+            as_attachment=True,
+            filename=fichiers[format]
+        )
+        
+        return response
+    except Exception as e:
+        messages.error(request, f"Erreur lors du téléchargement du fichier: {str(e)}")
+        return redirect('budgets:dashboard')

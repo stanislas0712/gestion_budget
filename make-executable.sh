@@ -20,6 +20,7 @@ SCRIPTS=(
     "quick-fix-containerconfig.sh"
     "fix-csrf-error.sh"
     "fix-502-bad-gateway.sh"
+    "deploy-web.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do
