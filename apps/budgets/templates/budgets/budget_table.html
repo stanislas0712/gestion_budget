@@ -1,0 +1,308 @@
+{% load humanize %}
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-budget table-bordered table-hover mb-0">
+                <thead class="sticky-top">
+                    <tr>
+                        <th class="col-code">Code</th>
+                        <th class="col-designation">Désignation</th>
+                        <th class="col-unite">Unité</th>
+                        <th class="col-quantite">Quantité</th>
+                        <th class="col-prix">Prix Unitaire</th>
+                        <th class="col-cout">Coût Total</th>
+                        <th class="col-cofinancement">Co-financement</th>
+                        <th class="col-subvention">Budget demandé</th>
+                        <th class="col-action text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for section in budget.sections.all %}
+                        <tr class="table-dark">
+                            <td colspan="5" class="fw-bold">
+                                <i class="bi bi-folder-fill me-2"></i>{{ section.code }} - {{ section.libelle }}
+                            </td>
+                            <td class="fw-bold text-end">{{ section.cout_total_section|floatformat:0|intcomma }}</td>
+                            <td class="fw-bold text-end">{{ section.co_financement_section|floatformat:0|intcomma }}</td>
+                            <td class="fw-bold text-end">{{ section.budget_demande_section|floatformat:0|intcomma }}</td>
+                            <td></td>
+                        </tr>
+
+                        {% for ligne in section.lignes.all|dictsort:"code" %}
+                            <tr class="table-secondary">
+                                <td colspan="5" class="fw-bold ps-4">
+                                    <i class="bi bi-list-ul me-2"></i>{{ ligne.code }} - {{ ligne.libelle }}
+                                </td>
+                                <td class="fw-bold text-end">{{ ligne.cout_total_ligne|floatformat:0|intcomma }}</td>
+                                <td class="fw-bold text-end">{{ ligne.co_financement_ligne|floatformat:0|intcomma }}</td>
+                                <td class="fw-bold text-end">{{ ligne.budget_demande_ligne|floatformat:0|intcomma }}</td>
+                                <td></td>
+                            </tr>
+
+                            {% for groupe in ligne.groupes.all %}
+                                <tr class="table-info">
+                                    <td colspan="9" class="fw-semibold ps-5">
+                                        <i class="bi bi-tags-fill me-2"></i>{{ groupe.libelle }}
+                                    </td>
+                                </tr>
+
+                                {% for article in groupe.articles.all %}
+                                    {% include 'partials/subline_row.html' with article=article budget=budget %}
+                                {% endfor %}
+
+                                {# Formulaire de saisie visible pour l'operateur si modifiable, toujours pour l'admin #}
+                                {% if budget.peut_etre_modifie or user.is_staff or user.is_superuser %}
+                                <tr class="bg-light article-form-row" data-groupe-id="{{ groupe.id }}" id="form-groupe-{{ groupe.id }}">
+                                    <td class="ps-5"></td>
+                                    <td>
+                                        <input type="text" name="designation" class="form-control form-control-sm"
+                                               placeholder="Désignation" aria-label="Désignation" required
+                                               data-field="designation">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="unite" class="form-control form-control-sm"
+                                               placeholder="Unité" aria-label="Unité"
+                                               data-field="unite">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="quantite" class="form-control form-control-sm"
+                                               value="1" step="0.01" placeholder="Quantité" aria-label="Quantité"
+                                               data-field="quantite">
+                                    </td>
+                                    <td>
+                                        <input type="number" name="prix_unitaire" class="form-control form-control-sm"
+                                               placeholder="Prix" step="0.01" aria-label="Prix unitaire"
+                                               data-field="prix_unitaire">
+                                    </td>
+                                    <td class="text-muted text-center">-</td>
+                                    <td>
+                                        <input type="number" name="co_financement" class="form-control form-control-sm"
+                                               value="0" step="0.01" placeholder="Co-financement" aria-label="Co-financement"
+                                               data-field="co_financement">
+                                    </td>
+                                    <td class="text-muted text-center">-</td>
+                                    <td class="text-center">
+                                        <small class="text-muted"><i class="bi bi-keyboard"></i> Entrée</small>
+                                    </td>
+                                </tr>
+                                {% endif %}
+
+                                <tr id="insert-row-groupe-{{ groupe.id }}" class="d-none"></tr>
+                            {% endfor %}
+                        {% endfor %}
+
+                        {# Sous-total de la section #}
+                        {% include 'budgets/partials/section_subtotal.html' with section=section budget=budget %}
+                    {% endfor %}
+
+                    {# SYNTHESE FINALE #}
+                    {% include 'budgets/partials/synthese_finale.html' with budget=budget %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# Boutons operateur : modifier + soumettre (seulement si budget modifiable et pas admin) #}
+{% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
+<div class="d-flex justify-content-end gap-2 mt-4 mb-5">
+    <button type="button" class="btn btn-xero-outline" data-bs-toggle="modal" data-bs-target="#modalModifierBudget">
+        <i class="bi bi-pencil me-1"></i>Modifier les infos
+    </button>
+    <button type="button" class="btn btn-xero" id="btn-soumettre" onclick="verifierAvantSoumission();">
+        <i class="bi bi-send me-1"></i>Soumettre le budget
+    </button>
+</div>
+{% endif %}
+
+{# Zone admin en bas : boutons d'action ou message de statut #}
+{% if user.is_staff or user.is_superuser %}
+    {# Bouton modifier toujours visible pour l'admin #}
+    <div class="text-center mt-4 mb-3">
+        <button type="button" class="btn btn-xero-outline" data-bs-toggle="modal" data-bs-target="#modalModifierBudget">
+            <i class="bi bi-pencil me-1"></i>Modifier les infos du budget
+        </button>
+    </div>
+
+    {% if budget.statut == 'soumis' %}
+    <div class="d-flex justify-content-center gap-3 mb-5">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalApprouver">
+            <i class="bi bi-check-circle-fill me-1"></i>Valider
+        </button>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDemanderModification">
+            <i class="bi bi-pencil-square me-1"></i>Demander modification
+        </button>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejeter">
+            <i class="bi bi-x-circle-fill me-1"></i>Rejeter
+        </button>
+    </div>
+    {% elif budget.statut == 'rejete' %}
+    <div class="text-center mt-4 mb-5">
+        <div class="alert alert-danger d-inline-flex align-items-center px-4 py-2">
+            <i class="bi bi-x-circle-fill me-2"></i>
+            <strong>Ce budget a ete rejete</strong>
+        </div>
+    </div>
+    {% elif budget.statut == 'approuve' %}
+    <div class="text-center mt-4 mb-5">
+        <div class="alert alert-success d-inline-flex align-items-center px-4 py-2">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong>Ce budget a ete approuve</strong>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}
+
+<script>
+// Fonction globale pour verifier avant soumission (appelee au clic sur Soumettre)
+function verifierAvantSoumission() {
+    const urlParts = window.location.pathname.split('/');
+    const budgetUuid = urlParts[urlParts.length - 2];
+    const modalBody = document.getElementById('modalSoumettreBody');
+    const modalEl = document.getElementById('modalSoumettre');
+    const btnConfirm = document.getElementById('btnConfirmSoumettre');
+
+    // Appel API pour verifier le pourcentage A1
+    fetch(`/budgets/get-pourcentage-a1/${budgetUuid}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.depasse_30) {
+                const alerteA1 = document.getElementById('alerte-a1');
+                const spanPourcentage = document.getElementById('a1-pourcentage-value');
+                if (alerteA1) {
+                    alerteA1.classList.remove('d-none');
+                    if (spanPourcentage) spanPourcentage.textContent = data.pourcentage_a1.toFixed(1);
+                }
+                modalBody.innerHTML = '<div class="alert alert-danger mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Impossible de soumettre : A.1 (Matieres d\'oeuvre) represente <strong>' + data.pourcentage_a1.toFixed(1) + '%</strong> du budget demande. Le maximum autorise est de <strong>30%</strong>.</div>';
+                btnConfirm.classList.add('d-none');
+            } else {
+                const alerteA1 = document.getElementById('alerte-a1');
+                if (alerteA1) alerteA1.classList.add('d-none');
+                modalBody.innerHTML = '<p class="mb-0">Etes-vous sur de vouloir soumettre ce budget pour validation ?<br><small class="text-muted">Vous ne pourrez plus le modifier sans demande speciale de l\'administrateur.</small></p>';
+                btnConfirm.classList.remove('d-none');
+            }
+            new bootstrap.Modal(modalEl).show();
+        })
+        .catch(err => {
+            console.error('Erreur verification:', err);
+            modalBody.innerHTML = '<p class="mb-0">Impossible de verifier les regles. Soumettre quand meme ?</p>';
+            btnConfirm.classList.remove('d-none');
+            new bootstrap.Modal(modalEl).show();
+        });
+}
+
+(function() {
+    // Ne rien faire s'il n'y a pas de formulaires de saisie
+    const formRows = document.querySelectorAll('.article-form-row');
+    if (formRows.length === 0) return;
+
+    // Recuperer le token CSRF depuis le cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrfToken = getCookie('csrftoken');
+
+    // Initialiser tous les formulaires
+    formRows.forEach(formRow => {
+        const groupeId = formRow.dataset.groupeId;
+        const inputs = formRow.querySelectorAll('input');
+
+        // Gerer la touche ENTREE sur tous les champs
+        inputs.forEach((input, index) => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+
+                    // Verifier que la designation est remplie
+                    const designation = formRow.querySelector('[name="designation"]').value;
+                    if (!designation.trim()) {
+                        alert('La designation est obligatoire');
+                        inputs[0].focus();
+                        return;
+                    }
+
+                    // Enregistrer l'article
+                    saveArticle(formRow, groupeId, inputs);
+                }
+            });
+        });
+    });
+
+    function updateTotals() {
+        // Recharger toute la page apres un court delai pour mettre a jour tous les totaux
+        setTimeout(() => {
+            location.reload();
+        }, 800);
+    }
+
+    function saveArticle(formRow, groupeId, inputs) {
+        // Recuperer les donnees du formulaire
+        const formData = new FormData();
+        inputs.forEach(input => {
+            formData.append(input.name, input.value);
+        });
+
+        // Desactiver les champs pendant l'enregistrement
+        inputs.forEach(input => input.disabled = true);
+        formRow.style.opacity = '0.6';
+
+        // Envoyer la requete
+        fetch(`/budgets/sauvegarder-ligne/${groupeId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Erreur d\'enregistrement');
+            return response.text();
+        })
+        .then(html => {
+            // Inserer la nouvelle ligne d'article AVANT le formulaire
+            formRow.insertAdjacentHTML('beforebegin', html);
+
+            // Reinitialiser le formulaire pour une nouvelle saisie
+            inputs.forEach(input => {
+                if (input.name === 'quantite') {
+                    input.value = '1';
+                } else if (input.name === 'co_financement') {
+                    input.value = '0';
+                } else {
+                    input.value = '';
+                }
+                input.disabled = false;
+            });
+            formRow.style.opacity = '1';
+
+            // Focus sur le premier champ pour continuer la saisie
+            inputs[0].focus();
+
+            // Animation de succes
+            formRow.style.backgroundColor = '#d4edda';
+            setTimeout(() => {
+                formRow.style.backgroundColor = '';
+            }, 500);
+
+            // Mettre a jour les totaux
+            updateTotals();
+        })
+        .catch(error => {
+            alert('Erreur lors de l\'enregistrement: ' + error.message);
+            inputs.forEach(input => input.disabled = false);
+            formRow.style.opacity = '1';
+        });
+    }
+})();
+</script>

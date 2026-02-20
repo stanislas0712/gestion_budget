@@ -1,0 +1,37 @@
+{% load humanize %}
+<div class="mb-3">
+    <a href="{% url 'budgets:dashboard' %}" class="btn btn-outline-dark btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+</div>
+<div class="card mb-4 border-0 shadow-sm" id="synthese-budget" hx-get="{% url 'budgets:get_synthese' budget.uuid %}" hx-trigger="refreshTotals from:body">
+
+    <div class="card-header synthese-header py-3">
+        <h6 class="mb-0 fw-semibold text-uppercase letter-spacing-1">Synthese du budget</h6>
+    </div>
+
+    <div class="card-body p-4">
+        <div class="row text-center g-0">
+            <div class="col-md-3 border-end px-3 py-2">
+                <small class="text-muted d-block fw-semibold mb-1">COUT TOTAL GLOBAL</small>
+                <h4 class="fw-bold mb-0">{{ budget.cout_total_global|floatformat:0|intcomma }}</h4>
+                <small class="text-muted">FCFA</small>
+            </div>
+            <div class="col-md-3 border-end px-3 py-2">
+                <small class="text-muted d-block fw-semibold mb-1">BUDGET DEMANDE</small>
+                <h4 class="fw-bold mb-0">{{ budget.budget_demande_global|floatformat:0|intcomma }}</h4>
+                <small class="text-muted">FCFA</small>
+            </div>
+            <div class="col-md-3 border-end px-3 py-2">
+                <small class="text-muted d-block fw-semibold mb-1">CO-FINANCEMENT</small>
+                <h4 class="fw-bold mb-0">{{ budget.co_financement_global|floatformat:0|intcomma }}</h4>
+                <small class="text-muted">FCFA</small>
+            </div>
+            <div class="col-md-3 px-3 py-2">
+                <small class="text-muted d-block fw-semibold mb-1">COUT / APPRENANT</small>
+                <h4 class="fw-bold mb-0">{{ budget.cout_par_apprenant|floatformat:0|intcomma }}</h4>
+                <small class="text-muted">FCFA</small>
+            </div>
+        </div>
+    </div>
+</div>

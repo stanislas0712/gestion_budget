@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Opérateurs - Budget Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-building"></i> Dashboard Opérateurs
+        </h1>
+    </div>
+</div>
+
+<!-- Main Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total</h5>
+                <h2>{{ stats.total }}</h2>
+                <small>Opérateurs enregistrés</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Actifs</h5>
+                <h2>{{ active_count }}</h2>
+                <small>Opérateurs en activité</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Vérifiés</h5>
+                <h2>{{ stats.verified }}</h2>
+                <small>{{ stats.verification_rate|floatformat:0 }}% vérifiés</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Operateurs Synchronisés à Odoo</h5>
+                <h2>{{ stats.synced_to_odoo }}</h2>
+                <small>{{ stats.odoo_sync_rate|floatformat:0 }}% synchronisés</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts & Actions -->
+<div class="row mb-4">
+    {% if unverified_operators %}
+    <!-- Unverified Operators Alert -->
+    <div class="col-md-6 mb-3">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-circle"></i> 
+                    Opérateurs à vérifier ({{ unverified_operators|length }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for operator in unverified_operators %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ operator.name }}</h6>
+                            <small class="text-muted">
+                                {{ operator.get_type_display }} • 
+                                {{ operator.city|default:"-" }}, {{ operator.country|default:"-" }}
+                            </small>
+                        </div>
+                        <a href="{% url 'operators:detail' operator.pk %}" class="btn btn-sm btn-outline-warning">
+                            Vérifier
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'operators:list' %}?is_verified=false" class="btn btn-sm btn-outline-warning">
+                    Voir tous les non vérifiés
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if not_synced_operators %}
+    <!-- Not Synced to Odoo Alert -->
+    <div class="col-md-6 mb-3">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-arrow-left-right"></i> 
+                    À synchroniser vers Odoo ({{ not_synced_operators|length }})
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for operator in not_synced_operators %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ operator.name }}</h6>
+                            <small class="text-muted">
+                                {{ operator.get_type_display }} • 
+                                Créé le {{ operator.created_at|date:"d/m/Y" }}
+                            </small>
+                        </div>
+                        <a href="{% url 'operators:detail' operator.pk %}" class="btn btn-sm btn-outline-info">
+                            Synchroniser
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'operators:list' %}?odoo_synced=false" class="btn btn-sm btn-outline-info">
+                    Voir tous les non synchronisés
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Statistics by Type -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Répartition par type</h5>
+            </div>
+            <div class="card-body">
+                {% if stats_by_type_list %}
+                <ul class="list-unstyled">
+                    {% for item in stats_by_type_list %}
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if item.key == 'ngo' %}
+                                <span class="badge bg-primary">ONG</span>
+                                {% elif item.key == 'association' %}
+                                <span class="badge bg-info">Association</span>
+                                {% elif item.key == 'cooperative' %}
+                                <span class="badge bg-success">Coopérative</span>
+                                {% elif item.key == 'company' %}
+                                <span class="badge bg-warning">Entreprise</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Autre</span>
+                                {% endif %}
+                            </span>
+                            <strong>{{ item.count }}</strong>
+                        </div>
+                        <div class="progress mt-1 progress-sm">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ item.pct }}%">
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">Aucune donnée</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics by Status -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Répartition par statut</h5>
+            </div>
+            <div class="card-body">
+                {% if stats_by_status_list %}
+                <ul class="list-unstyled">
+                    {% for item in stats_by_status_list %}
+                    <li class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if item.key == 'active' %}
+                                <span class="badge bg-success">Actif</span>
+                                {% elif item.key == 'inactive' %}
+                                <span class="badge bg-secondary">Inactif</span>
+                                {% elif item.key == 'suspended' %}
+                                <span class="badge bg-danger">Suspendu</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ item.key }}</span>
+                                {% endif %}
+                            </span>
+                            <strong>{{ item.count }}</strong>
+                        </div>
+                        <div class="progress mt-1 progress-sm">
+                            <div class="progress-bar" role="progressbar" 
+                                 style="width: {{ item.pct }}%;">
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted">Aucune donnée</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Actions rapides</h5>
+            </div>
+            <div class="card-body">
+                <a href="{% url 'operators:list' %}" class="btn btn-secondary me-2">
+                    <i class="bi bi-list"></i> Voir tous les opérateurs
+                </a>
+                <a href="{% url 'operators:list' %}?is_verified=false" class="btn btn-outline-warning me-2">
+                    <i class="bi bi-exclamation-circle"></i> À vérifier
+                </a>
+                <a href="{% url 'operators:list' %}?odoo_synced=false" class="btn btn-outline-info">
+                    <i class="bi bi-arrow-left-right"></i> À synchroniser
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

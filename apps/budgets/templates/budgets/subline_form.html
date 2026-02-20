@@ -1,0 +1,131 @@
+<tr class="bg-light article-form-row" data-groupe-id="{{ groupe.id }}">
+    <td class="ps-5"></td>
+    <td>
+        <input type="text" name="designation" class="form-control form-control-sm"
+               placeholder="Désignation" aria-label="Désignation" required
+               data-field="designation">
+    </td>
+    <td>
+        <input type="text" name="unite" class="form-control form-control-sm"
+               placeholder="Unité" aria-label="Unité"
+               data-field="unite">
+    </td>
+    <td>
+        <input type="number" name="quantite" class="form-control form-control-sm"
+               value="1" step="0.01" placeholder="Quantité" aria-label="Quantité"
+               data-field="quantite">
+    </td>
+    <td>
+        <input type="number" name="prix_unitaire" class="form-control form-control-sm"
+               placeholder="Prix" step="0.01" aria-label="Prix unitaire"
+               data-field="prix_unitaire">
+    </td>
+    <td class="text-muted text-center">-</td>
+    <td>
+        <input type="number" name="co_financement" class="form-control form-control-sm"
+               value="0" step="0.01" placeholder="Co-financement" aria-label="Co-financement"
+               data-field="co_financement">
+    </td>
+    <td class="text-muted text-center">-</td>
+    <td class="text-center">
+        <button type="button" class="btn btn-outline-danger btn-sm"
+                onclick="this.closest('tr').remove()"
+                title="Annuler (Échap)">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </td>
+</tr>
+
+<script>
+(function() {
+    const row = document.querySelector('.article-form-row[data-groupe-id="{{ groupe.id }}"]');
+    const inputs = row.querySelectorAll('input');
+    const groupeId = "{{ groupe.id }}";
+
+    // Focus sur le premier champ
+    inputs[0].focus();
+
+    // Gérer la touche ENTRÉE sur tous les champs
+    inputs.forEach((input, index) => {
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+
+                // Vérifier que la désignation est remplie
+                const designation = row.querySelector('[name="designation"]').value;
+                if (!designation.trim()) {
+                    alert('La désignation est obligatoire');
+                    inputs[0].focus();
+                    return;
+                }
+
+                // Enregistrer l'article
+                saveArticle();
+            } else if (e.key === 'Escape') {
+                row.remove();
+            } else if (e.key === 'Tab' && !e.shiftKey && index === inputs.length - 1) {
+                // Si TAB sur le dernier champ, enregistrer
+                e.preventDefault();
+                saveArticle();
+            }
+        });
+    });
+
+    function saveArticle() {
+        // Récupérer les données du formulaire
+        const formData = new FormData();
+        inputs.forEach(input => {
+            formData.append(input.name, input.value);
+        });
+
+        // Désactiver les champs pendant l'enregistrement
+        inputs.forEach(input => input.disabled = true);
+
+        // Envoyer la requête
+        fetch("{% url 'budgets:sauvegarder_ligne' groupe.id %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Erreur d\'enregistrement');
+            return response.text();
+        })
+        .then(html => {
+            // Insérer la nouvelle ligne d'article
+            const targetRow = document.getElementById('last-row-groupe-{{ groupe.id }}');
+            targetRow.insertAdjacentHTML('beforebegin', html);
+
+            // Rafraîchir les totaux
+            document.body.dispatchEvent(new Event('refreshTotals'));
+
+            // Réinitialiser le formulaire pour une nouvelle saisie
+            inputs.forEach(input => {
+                if (input.name === 'quantite') {
+                    input.value = '1';
+                } else if (input.name === 'co_financement') {
+                    input.value = '0';
+                } else {
+                    input.value = '';
+                }
+                input.disabled = false;
+            });
+
+            // Focus sur le premier champ pour continuer la saisie
+            inputs[0].focus();
+
+            // Animation de succès
+            row.style.backgroundColor = '#d4edda';
+            setTimeout(() => {
+                row.style.backgroundColor = '';
+            }, 500);
+        })
+        .catch(error => {
+            alert('Erreur lors de l\'enregistrement: ' + error.message);
+            inputs.forEach(input => input.disabled = false);
+        });
+    }
+})();
+</script>

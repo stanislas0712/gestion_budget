@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}Événements d'intégration - Budget Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h1><i class="bi bi-arrow-left-right"></i> Événements d'intégration</h1>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Système</label>
+                <select name="system" class="form-select" title="Système">
+                    <option value="">Tous</option>
+                    {% for value, label in systems %}
+                    <option value="{{ value }}" {% if current_system == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Direction</label>
+                <select name="direction" class="form-select" title="Direction">
+                    <option value="">Tous</option>
+                    {% for value, label in directions %}
+                    <option value="{{ value }}" {% if current_direction == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Statut</label>
+                <select name="status" class="form-select" title="Statut">
+                    <option value="">Tous</option>
+                    {% for value, label in statuses %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Recherche</label>
+                <input type="text" name="search" class="form-control" value="{{ current_search }}" placeholder="ID...">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Filtrer</button>
+                <a href="{% url 'audits:event_list' %}" class="btn btn-secondary">Réinitialiser</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stats Summary -->
+<div class="alert alert-info">
+    <strong>Dernières 24h:</strong> {{ stats.total }} événements | 
+    <span class="text-success">{{ stats.success }} réussis</span> |
+    <span class="text-danger">{{ stats.failed }} échecs</span> |
+    Taux de succès: {{ stats.success_rate|floatformat:1 }}%
+</div>
+
+<!-- Events Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Système</th>
+                        <th>Direction</th>
+                        <th>Statut</th>
+                        <th>ID Externe</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in events %}
+                    <tr>
+                        <td>{{ event.id }}</td>
+                        <td><span class="badge bg-primary">{{ event.get_system_display }}</span></td>
+                        <td><span class="badge bg-secondary">{{ event.get_direction_display }}</span></td>
+                        <td>
+                            {% if event.status == 'processed' %}
+                            <span class="badge bg-success">✓ Traité</span>
+                            {% elif event.status == 'failed' %}
+                            <span class="badge bg-danger">✗ Échec</span>
+                            {% else %}
+                            <span class="badge bg-warning">⋯ Reçu</span>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ event.external_id|truncatechars:20 }}</code></td>
+                        <td>{{ event.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'audits:event_detail' event.pk %}" class="btn btn-sm btn-outline-primary">
+                                Détails
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Aucun événement trouvé</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Précédent</a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Suivant</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,19 +1,296 @@
-<!doctype html>
+{% load static %}
+<!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}Plateforme Budget{% endblock %}</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Plateforme Budgets{% endblock %}</title>
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+    <style>
+        :root {
+            --xero-dark: #0d333f;
+            --xero-nav: #13353b;
+            --xero-teal: #00b4c5;
+            --xero-blue: #1976D2;
+            --xero-bg: #f4f5f7;
+            --xero-surface: #ffffff;
+            --xero-border: #dce0e3;
+            --xero-text: #1b2733;
+            --xero-muted: #6b778c;
+            --xero-hover: #e9ecef;
+        }
+        * { box-sizing: border-box; }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--xero-bg);
+            color: var(--xero-text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        main { flex: 1; }
 
-    <!-- HTMX (no React) -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+        /* Navbar Xero style */
+        .xero-nav {
+            background: var(--xero-nav);
+            padding: 0 1.5rem;
+            height: 52px;
+            display: flex;
+            align-items: center;
+        }
+        .xero-nav .navbar-brand {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .xero-nav .nav-link {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.5rem 0.9rem;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+        .xero-nav .nav-link:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .xero-nav .nav-link.active { color: #fff; background: rgba(255,255,255,0.12); }
+        .xero-nav .badge-admin {
+            background: var(--xero-teal);
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
 
-    {% block head %}{% endblock %}
-  </head>
-  <body>
-    <main style="max-width: 980px; margin: 2rem auto; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;">
-      {% block content %}{% endblock %}
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--xero-border);
+            background: var(--xero-surface);
+            padding: 0.8rem 0;
+        }
+        footer small { color: var(--xero-muted); font-size: 0.75rem; }
+
+        /* Cards */
+        .card {
+            border: 1px solid var(--xero-border);
+            border-radius: 6px;
+            background: var(--xero-surface);
+        }
+        .card-header { background: var(--xero-surface); }
+
+        /* Synthese header */
+        .synthese-header {
+            background: var(--xero-nav);
+            color: #fff;
+            border-radius: 6px 6px 0 0;
+        }
+
+        /* Buttons Xero style */
+        .btn-xero {
+            background: var(--xero-teal);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 0.5rem 1.2rem;
+            border-radius: 4px;
+        }
+        .btn-xero:hover { background: #009dac; color: #fff; }
+        .btn-xero-outline {
+            background: transparent;
+            color: var(--xero-text);
+            border: 1px solid var(--xero-border);
+            font-weight: 500;
+            font-size: 0.85rem;
+            padding: 0.5rem 1.2rem;
+            border-radius: 4px;
+        }
+        .btn-xero-outline:hover { background: var(--xero-hover); }
+
+        /* Table budget */
+        .table-budget { font-size: 0.85rem; }
+        .table-budget thead th {
+            background-color: var(--xero-nav);
+            color: #fff;
+            border-bottom: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
+            padding: 0.7rem 0.5rem;
+        }
+        .table-budget tbody tr:hover { background-color: #f8f9fa; }
+        .table-budget .table-dark {
+            background-color: var(--xero-nav) !important;
+            color: white;
+        }
+        .table-budget .table-secondary {
+            background-color: #2d4a53 !important;
+            color: white;
+        }
+        .table-budget .table-info {
+            background-color: #e8f4f8 !important;
+            color: var(--xero-text);
+            font-weight: 600;
+        }
+        .table-budget .col-code { width: 5%; }
+        .table-budget .col-designation { width: 30%; }
+        .table-budget .col-unite { width: 8%; }
+        .table-budget .col-quantite { width: 8%; }
+        .table-budget .col-prix { width: 12%; }
+        .table-budget .col-cout { width: 12%; }
+        .table-budget .col-cofinancement { width: 12%; }
+        .table-budget .col-subvention { width: 12%; }
+        .table-budget .col-action { width: 8%; }
+
+        /* Budget icon */
+        .budget-icon { font-size: 1.3rem; }
+
+        /* Bandeau appel a projet */
+        .appel-bandeau {
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 6px 0;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 0.2px;
+        }
+        .appel-bandeau-success { background: var(--xero-teal); color: #fff; }
+        .appel-bandeau-danger { background: #c9372c; color: #fff; }
+        .appel-bandeau-track {
+            display: inline-block;
+            animation: defilement 20s linear infinite;
+        }
+        .appel-bandeau:hover .appel-bandeau-track { animation-play-state: paused; }
+        .appel-bandeau-text { display: inline-block; padding-left: 100%; }
+        @keyframes defilement {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Badge statut */
+        .badge-statut {
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        /* Xero-style form */
+        .form-control, .form-select {
+            border: 1px solid var(--xero-border);
+            border-radius: 4px;
+            font-size: 0.88rem;
+            padding: 0.45rem 0.75rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--xero-teal);
+            box-shadow: 0 0 0 2px rgba(0, 180, 197, 0.15);
+        }
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--xero-text);
+            margin-bottom: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <nav class="xero-nav">
+        <a class="navbar-brand me-4" href="{% url 'budgets:dashboard' %}">Plateforme Budgets</a>
+
+        <div class="d-flex align-items-center me-auto gap-1">
+            <a class="nav-link active" href="{% url 'budgets:dashboard' %}">Tableau de bord</a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            {% if user.is_staff or user.is_superuser %}
+                <span class="badge-admin">Admin</span>
+            {% endif %}
+            <div class="dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle me-1"></i>{{ user.get_full_name|default:user.username }}
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{% url 'budgets:profil' %}"><i class="bi bi-person me-2"></i>Profil</a></li>
+                    {% if user.is_staff %}
+                    <li><a class="dropdown-item" href="/manager/" target="_blank"><i class="bi bi-gear me-2"></i>Administration</a></li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Deconnexion</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    {% if appel_global %}
+    <div class="appel-bandeau {% if appel_fin_proche %}appel-bandeau-danger{% else %}appel-bandeau-success{% endif %}">
+        <div class="appel-bandeau-track">
+            <span class="appel-bandeau-text">
+                {% if appel_fin_proche %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% endif %}
+                Appel a projet : {{ appel_global.nom }}
+                &nbsp;&bull;&nbsp;
+                Du {{ appel_global.date_debut|date:"d/m/Y" }} au {{ appel_global.date_fin|date:"d/m/Y" }}
+                &nbsp;&bull;&nbsp;
+                {% if appel_jours_restants > 1 %}{{ appel_jours_restants }} jours restants
+                {% elif appel_jours_restants == 1 %}1 jour restant
+                {% elif appel_jours_restants == 0 %}Dernier jour !
+                {% else %}Appel en cours de cloture{% endif %}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                {% if appel_fin_proche %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% endif %}
+                Appel a projet : {{ appel_global.nom }}
+                &nbsp;&bull;&nbsp;
+                Du {{ appel_global.date_debut|date:"d/m/Y" }} au {{ appel_global.date_fin|date:"d/m/Y" }}
+                &nbsp;&bull;&nbsp;
+                {% if appel_jours_restants > 1 %}{{ appel_jours_restants }} jours restants
+                {% elif appel_jours_restants == 1 %}1 jour restant
+                {% elif appel_jours_restants == 0 %}Dernier jour !
+                {% else %}Appel en cours de cloture{% endif %}
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <main class="px-4 py-4">
+        {% block content %}{% endblock %}
     </main>
-  </body>
-</html>
 
+    <footer class="text-center mt-auto">
+        <small>Plateforme de Gestion Budgetaire &copy; 2026</small>
+    </footer>
+
+    <script src="{% static 'vendor/htmx/htmx.min.js' %}"></script>
+    <script>
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+    </script>
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script>
+    // Bloquer le scroll souris sur les champs numériques pour éviter les modifications accidentelles
+    document.addEventListener('wheel', function(e) {
+        if (e.target.type === 'number') {
+            e.target.blur();
+        }
+    }, { passive: true });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

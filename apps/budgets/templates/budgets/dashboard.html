@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 fw-bold mb-1">Tableau de bord</h1>
+            <p class="text-muted small mb-0">
+                {% if appels_actifs %}
+                    {{ appels_actifs|length }} appel{{ appels_actifs|length|pluralize }} actif{{ appels_actifs|length|pluralize }}
+                {% else %}
+                    Aucun appel actif
+                {% endif %}
+            </p>
+        </div>
+        {% if not is_admin %}
+            <div class="d-flex gap-2">
+                {% if appels_actifs %}
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCreerBudget">
+                    <i class="bi bi-plus me-1"></i>Nouveau budget
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-xero-outline" disabled title="Aucun appel a projet actif">
+                    <i class="bi bi-plus me-1"></i>Nouveau budget
+                </button>
+                {% endif %}
+
+                {# Bouton télécharger le format #}
+                <a href="{% url 'budgets:telecharger_template' 'excel' %}" class="btn btn-xero-outline">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Télécharger le format
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if appels_actifs %}
+        {% for appel in appels_actifs %}
+        <div class="alert alert-light border mb-2 py-2">
+            <i class="bi bi-megaphone me-2 text-muted"></i>
+            <strong>{{ appel.nom }}</strong>
+            <span class="ms-3 text-muted small">
+                Du {{ appel.date_debut|date:"d/m/Y H:i" }} au {{ appel.date_fin|date:"d/m/Y H:i" }}
+            </span>
+        </div>
+        {% endfor %}
+    {% elif not is_admin %}
+    <div class="alert alert-light border mb-4 py-2">
+        <i class="bi bi-info-circle me-2 text-muted"></i>
+        Aucun appel a projet actif. Creation et modification de budgets suspendues.
+    </div>
+    {% endif %}
+
+    {% if is_admin %}
+    <div class="mb-4 mt-3">
+        <form method="GET" action="">
+            <div class="row g-2 align-items-end">
+                <div class="col-md">
+                    <input type="text" name="q" class="form-control" placeholder="Rechercher par titre, operateur..." value="{{ request.GET.q }}">
+                </div>
+                <div class="col-md">
+                    <select name="appel" class="form-select" title="Filtrer par appel a projet">
+                        <option value="">Appel a projet</option>
+                        {% for appel in tous_appels %}
+                            <option value="{{ appel.id }}" {% if filtre_appel == appel.id|stringformat:"d" %}selected{% endif %}>{{ appel.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md">
+                    <select name="filiere" class="form-select" title="Filtrer par filière">
+                        <option value="">Filière</option>
+                        {% for filiere in toutes_filieres %}
+                            <option value="{{ filiere.id }}" {% if filtre_filiere == filiere.id|stringformat:"d" %}selected{% endif %}>{{ filiere.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-xero" title="Filtrer">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                    <a href="{% url 'budgets:dashboard' %}" class="btn btn-xero-outline" title="Reinitialiser les filtres">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    {% if is_admin %}
+    {# ===== VUE ADMIN : liste plate avec pagination ===== #}
+    <div class="row">
+        {% for budget in budgets %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="card-title fw-bold mb-0 text-truncate me-2" title="{{ budget.titre_projet }}">{{ budget.titre_projet|truncatechars:45 }}</h6>
+                        {% if budget.statut == 'brouillon' %}
+                            <span class="badge bg-secondary badge-statut">Brouillon</span>
+                        {% elif budget.statut == 'soumis' %}
+                            <span class="badge bg-primary badge-statut">Soumis</span>
+                        {% elif budget.statut == 'modification_autorisee' %}
+                            <span class="badge bg-warning text-dark badge-statut">Modification</span>
+                        {% elif budget.statut == 'approuve' %}
+                            <span class="badge bg-success badge-statut">Approuve</span>
+                        {% elif budget.statut == 'rejete' %}
+                            <span class="badge bg-danger badge-statut">Rejete</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-muted small mb-3">{{ budget.operateur }}</p>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Cout total</span>
+                            <strong>{{ budget.cout_total_global|floatformat:0|intcomma }} FCFA</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Apprenants</span>
+                            <span>{{ budget.total_apprenants }}</span>
+                        </div>
+                        {% if budget.filiere %}
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Filiere</span>
+                            <span>{{ budget.filiere|truncatechars:25 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if budget.appel_a_projet %}
+                        <div class="d-flex justify-content-between mb-1 small">
+                            <span class="text-muted">Appel</span>
+                            <span>{{ budget.appel_a_projet.nom|truncatechars:25 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-xero-outline btn-sm w-100 mt-3">
+                        Ouvrir
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <p class="text-muted mt-3">Aucun budget trouve</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="d-flex justify-content-between align-items-center mt-2 mb-4">
+        <small class="text-muted">
+            {{ page_obj.paginator.count }} budget{{ page_obj.paginator.count|pluralize }} au total
+            — Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
+        </small>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link" style="background: var(--xero-teal); border-color: var(--xero-teal);">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.next_page_number }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    {# ===== VUE OPERATEUR : budgets groupés par filière ===== #}
+    {% for groupe in budgets_par_filiere %}
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <i class="bi bi-mortarboard-fill me-2" style="color: var(--xero-teal);"></i>
+            <h5 class="fw-bold mb-0">{% if groupe.filiere %}{{ groupe.filiere.nom }}{% else %}Sans filière{% endif %}</h5>
+            <span class="badge bg-info ms-2">{{ groupe.budgets|length }} budget{{ groupe.budgets|length|pluralize }}</span>
+        </div>
+        <div class="row">
+            {% for budget in groupe.budgets %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title fw-bold mb-0 text-truncate me-2" title="{{ budget.titre_projet }}">{{ budget.titre_projet|truncatechars:45 }}</h6>
+                            {% if budget.statut == 'brouillon' %}
+                                <span class="badge bg-secondary badge-statut">Brouillon</span>
+                            {% elif budget.statut == 'soumis' %}
+                                <span class="badge bg-primary badge-statut">Soumis</span>
+                            {% elif budget.statut == 'modification_autorisee' %}
+                                <span class="badge bg-warning text-dark badge-statut">Modification</span>
+                            {% elif budget.statut == 'approuve' %}
+                                <span class="badge bg-success badge-statut">Approuve</span>
+                            {% elif budget.statut == 'rejete' %}
+                                <span class="badge bg-danger badge-statut">Rejete</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small mb-3">{{ budget.operateur }}</p>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-muted">Cout total</span>
+                                <strong>{{ budget.cout_total_global|floatformat:0|intcomma }} FCFA</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-muted">Apprenants</span>
+                                <span>{{ budget.total_apprenants }}</span>
+                            </div>
+                        </div>
+                        <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-xero-outline btn-sm w-100 mt-3">
+                            Ouvrir
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-5">
+        <i class="bi bi-folder2-open display-4 text-muted"></i>
+        <p class="text-muted mt-3">Vous n'avez pas encore de budgets</p>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% if budget_form %}
+<!-- Modal Créer Budget -->
+<div class="modal fade" id="modalCreerBudget" tabindex="-1" aria-labelledby="modalCreerBudgetLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:creer_budget' %}" novalidate>
+                {% csrf_token %}
+                <div class="modal-header" style="background: var(--xero-nav);">
+                    <h5 class="modal-title text-white" id="modalCreerBudgetLabel">
+                        <i class="bi bi-plus-circle me-2"></i>Nouveau budget
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if budget_form.non_field_errors %}
+                    <div class="alert alert-danger py-2" role="alert">
+                        <i class="bi bi-exclamation-circle me-1"></i>
+                        {% for error in budget_form.non_field_errors %}{{ error }}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Appel a projet <span class="text-danger">*</span></label>
+                            {{ budget_form.appel_a_projet }}
+                            {% if budget_form.appel_a_projet.errors %}
+                                <small class="text-danger">{{ budget_form.appel_a_projet.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Opérateur ou Consortium</label>
+                            {{ budget_form.operateur }}
+                            {% if budget_form.operateur.errors %}
+                                <small class="text-danger">{{ budget_form.operateur.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Filière <span class="text-danger">*</span></label>
+                            {{ budget_form.filiere }}
+                            {% if budget_form.filiere.errors %}
+                                <small class="text-danger">{{ budget_form.filiere.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
+                            {{ budget_form.titre_projet }}
+                            {% if budget_form.titre_projet.errors %}
+                                <small class="text-danger">{{ budget_form.titre_projet.errors.0 }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
+                            {{ budget_form.total_apprenants }}
+                            {% if budget_form.total_apprenants.errors %}
+                                <small class="text-danger">{{ budget_form.total_apprenants.errors.0 }}</small>
+                            {% else %}
+                                <small class="text-muted">Minimum 50 apprenants</small>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-xero">Creer le Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const nbAppels = {{ appels_actifs|length }};
+    function verifierAppel() {
+        fetch('/budgets/get-appel-statut/')
+            .then(r => r.json())
+            .then(data => {
+                if (data.count !== nbAppels) location.reload();
+            })
+            .catch(() => {});
+    }
+    setInterval(verifierAppel, 5000);
+})();
+{% if show_modal %}
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('modalCreerBudget')).show();
+});
+{% endif %}
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - Plateforme Budgets</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkM2NrRwuBZu8xf/6lJZ4qQ==" crossorigin="anonymous">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f4f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .login-topbar {
+            background: #13353b;
+            padding: 14px 24px;
+        }
+        .login-topbar .brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .register-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .register-card {
+            background: #fff;
+            border: 1px solid #dce0e3;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 480px;
+            padding: 2.5rem 2rem 2rem;
+        }
+        .register-card h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .register-card .subtitle {
+            color: #6b778c;
+            font-size: 0.85rem;
+            margin-bottom: 1.8rem;
+        }
+        .register-card .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .register-card .form-control {
+            border: 1px solid #dce0e3;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            padding: 0.55rem 0.75rem;
+        }
+        .register-card .form-control:focus {
+            border-color: #00b4c5;
+            box-shadow: 0 0 0 2px rgba(0, 180, 197, 0.15);
+        }
+        .btn-register {
+            background: #00b4c5;
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .btn-register:hover { background: #009dac; color: #fff; }
+        .register-footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #6b778c;
+        }
+        .register-footer a {
+            color: #00b4c5;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .register-footer a:hover { text-decoration: underline; }
+        .alert-register {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #c9372c;
+            border-radius: 4px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.82rem;
+            margin-bottom: 1.2rem;
+        }
+        .field-error {
+            color: #c9372c;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        .page-footer {
+            border-top: 1px solid #dce0e3;
+            background: #fff;
+            padding: 0.8rem 0;
+            text-align: center;
+        }
+        .page-footer small { color: #6b778c; }
+    </style>
+</head>
+<body>
+    <div class="login-topbar">
+        <span class="brand">Plateforme Budgets</span>
+    </div>
+
+    <div class="register-wrapper">
+        <div class="register-card">
+            <h2>Creer un compte</h2>
+            <p class="subtitle">Inscrivez-vous en tant qu'operateur</p>
+
+            {% if form.non_field_errors %}
+            <div class="alert-register">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                {% for error in form.non_field_errors %}
+                    <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="id_email" class="form-label">Adresse email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <div class="field-error">{{ form.email.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="id_password1" class="form-label">Mot de passe</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}
+                        <div class="field-error">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_password2" class="form-label">Confirmer le mot de passe</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}
+                        <div class="field-error">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn-register">Creer mon compte</button>
+            </form>
+
+            <div class="register-footer mt-4">
+                Deja un compte ? <a href="{% url 'login' %}">Se connecter</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <small>Plateforme de Gestion Budgetaire &copy; 2026</small>
+    </footer>
+</body>
+</html>

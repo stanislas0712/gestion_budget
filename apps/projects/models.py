@@ -1,8 +1,39 @@
 from django.db import models
+from django.conf import settings
 from simple_history.models import HistoricalRecords
 
 from apps.integrations.goodgrants.models import GoodGrantsApplication
 from apps.operators.models import Operator
+
+
+class AppelAProjet(models.Model):
+    nom = models.CharField(max_length=255, verbose_name="Nom de l'appel à projet")
+    date_debut = models.DateTimeField(verbose_name="Date de début")
+    date_fin = models.DateTimeField(verbose_name="Date de fin")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        verbose_name="Créé par"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    history = HistoricalRecords()
+
+    class Meta:
+        verbose_name = "Appel à projet"
+        verbose_name_plural = "Appels à projets"
+        ordering = ['-date_debut']
+
+    def __str__(self):
+        return self.nom
+
+    @property
+    def est_actif(self):
+        from django.utils import timezone
+        now = timezone.now()
+        return self.date_debut <= now <= self.date_fin
 
 
 class Project(models.Model):

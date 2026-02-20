@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Mon Profil{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <a href="{% url 'budgets:dashboard' %}" class="btn btn-xero-outline btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Retour
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 fw-bold">Mon Profil</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" title="Fermer"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="text-center mb-4">
+                        <i class="bi bi-person-circle" style="font-size: 64px; color: var(--xero-muted);"></i>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Nom d'utilisateur</small>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>{{ user.username }}</strong>
+                        </div>
+                    </div>
+
+                    {% if user.first_name or user.last_name %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Nom complet</small>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>{{ user.first_name }} {{ user.last_name }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if user.email %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Email</small>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>{{ user.email }}</strong>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Type de compte</small>
+                        </div>
+                        <div class="col-md-8">
+                            {% if user.is_staff or user.is_superuser %}
+                                <span class="badge-admin">Administrateur</span>
+                            {% else %}
+                                <span class="badge bg-secondary badge-statut">Operateur</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Membre depuis</small>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>{{ user.date_joined|date:"d/m/Y" }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Derniere connexion</small>
+                        </div>
+                        <div class="col-md-8">
+                            <strong>
+                            {% if user.last_login %}
+                                {{ user.last_login|date:"d/m/Y a H:i" }}
+                            {% else %}
+                                Jamais connecte
+                            {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-xero" data-bs-toggle="modal" data-bs-target="#modalChangerMdp">
+                            <i class="bi bi-key me-1"></i>Changer mon mot de passe
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if user.is_staff or user.is_superuser %}
+            <div class="card shadow-sm mt-3">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-bold">Acces Administrateur</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        En tant qu'administrateur, vous avez acces a des fonctionnalites supplementaires :
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Voir tous les budgets</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Valider, rejeter ou demander des modifications</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Exporter les budgets (Excel, PDF)</li>
+                        <li class="mb-1"><i class="bi bi-check2 me-2 text-muted"></i>Filtrer par appel, filiere, localite</li>
+                    </ul>
+                    <a href="/manager/" target="_blank" class="btn btn-xero-outline btn-sm">
+                        <i class="bi bi-gear me-1"></i>Administration
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# ===== MODAL: Changer mot de passe ===== #}
+{% if password_form %}
+<div class="modal fade" id="modalChangerMdp" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:changer_mot_de_passe' %}">
+                {% csrf_token %}
+                <div class="modal-header" style="background: var(--xero-nav);">
+                    <h5 class="modal-title text-white"><i class="bi bi-key me-2"></i>Changer mon mot de passe</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if password_form.errors %}
+                    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>Veuillez corriger les erreurs ci-dessous.</div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Ancien mot de passe <span class="text-danger">*</span></label>
+                        {{ password_form.old_password }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nouveau mot de passe <span class="text-danger">*</span></label>
+                        {{ password_form.new_password1 }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmer le nouveau mot de passe <span class="text-danger">*</span></label>
+                        {{ password_form.new_password2 }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-xero">Changer le mot de passe</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if show_password_modal %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('modalChangerMdp')).show();
+});
+</script>
+{% endif %}
+{% endblock %}

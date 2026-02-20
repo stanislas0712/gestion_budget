@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+
+# Base de données SQLite (développement)
+db.sqlite3
+db.sqlite3-journal
+*.db
+
+# Certificats SSL Let's Encrypt (ne jamais commiter)
+certbot/
+*.pem
+*.key
+*.crt
+*.csr

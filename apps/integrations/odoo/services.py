@@ -1,5 +1,5 @@
 """
-Odoo client + service layer.
+Odoo operator sync + service layer.
 
 Do not mix GoodGrants concerns here. This module should only know about Odoo.
 """
@@ -30,9 +30,9 @@ def get_config() -> OdooConfig:
     )
 
 
-class OdooClient:
+class OdooOperatorSync:
     """
-    Placeholder client. Adapt to your chosen Odoo protocol:
+    Placeholder operator sync service. Adapt to your chosen Odoo protocol:
     - JSON-RPC (common)
     - XML-RPC
     - Custom REST gateway

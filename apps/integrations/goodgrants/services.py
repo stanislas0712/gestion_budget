@@ -26,7 +26,7 @@ def get_config() -> GoodGrantsConfig:
     )
 
 
-class GoodGrantsClient:
+class GoodGrantsOperatorSync:
     def __init__(self, config: GoodGrantsConfig | None = None) -> None:
         self.config = config or get_config()
 

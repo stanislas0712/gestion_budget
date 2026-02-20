@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header text-white p-4 bg-warning">
+                    <h4 class="mb-0 text-dark">
+                        <i class="bi bi-pencil-square me-2"></i>Demander une modification
+                    </h4>
+                    <p class="mb-0 mt-2 text-dark opacity-75">{{ budget.titre_projet }}</p>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Indiquez à l'opérateur <strong>{{ budget.created_by.get_full_name|default:budget.created_by.username }}</strong>
+                        les modifications à apporter sur ce budget. Un email lui sera envoyé automatiquement.
+                    </div>
+
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-building me-1"></i>Opérateur : <strong>{{ budget.operateur }}</strong>
+                        </small>
+                        <br>
+                        <small class="text-muted">
+                            <i class="bi bi-envelope me-1"></i>Email : <strong>{{ budget.created_by.email|default:"Non renseigné" }}</strong>
+                        </small>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="bi bi-chat-left-text me-1"></i>Motif de la demande de modification <span class="text-danger">*</span>
+                            </label>
+                            <textarea name="motif" class="form-control" rows="5" required
+                                      placeholder="Décrivez les corrections ou modifications que l'opérateur doit apporter..."></textarea>
+                            <div class="form-text">Ce message sera envoyé par email à l'opérateur.</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5 pt-4 border-top">
+                            <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-x-circle me-1"></i>Annuler
+                            </a>
+                            <button type="submit" class="btn btn-warning px-4 btn-lg">
+                                <i class="bi bi-send me-1"></i>Envoyer la demande
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
