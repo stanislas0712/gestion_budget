@@ -16,6 +16,7 @@ SCRIPTS=(
     "fix-docker-error.sh"
     "fix-ssl-challenge.sh"
     "configure-nginx.sh"
+    "fix-django-allowed-hosts.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

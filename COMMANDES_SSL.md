@@ -112,6 +112,36 @@ chmod +x git-pull-safe.sh
 
 ## 🔧 Dépannage
 
+### Erreur Django "Invalid HTTP_HOST header"
+
+Si vous obtenez l'erreur `Invalid HTTP_HOST header: 'localhost:8000'` :
+
+```bash
+# Solution rapide
+chmod +x fix-django-allowed-hosts.sh
+./fix-django-allowed-hosts.sh
+```
+
+**Causes possibles:**
+1. `ALLOWED_HOSTS` ne contient pas le domaine ou l'IP du serveur
+2. Nginx envoie le mauvais header `Host` à Django
+3. Configuration `.env` incorrecte
+
+**Solutions manuelles:**
+
+```bash
+# 1. Mettre à jour .env
+# Ajoutez dans .env:
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,budget.bkdb.bf,www.budget.bkdb.bf,51.20.216.98
+
+# 2. Vérifier la configuration Nginx
+sudo grep "proxy_set_header Host" /etc/nginx/sites-available/budget.bkdb.bf
+# Doit afficher: proxy_set_header Host $host;
+
+# 3. Redémarrer Django
+docker-compose restart web
+```
+
 ### Erreur Let's Encrypt "Connection refused"
 
 Si vous obtenez l'erreur `Connection refused` lors de l'obtention du certificat SSL :
