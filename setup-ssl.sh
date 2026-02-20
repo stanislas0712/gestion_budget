@@ -31,7 +31,21 @@ cd "$SCRIPT_DIR"
 # Créer les répertoires nécessaires
 echo "📁 Création des répertoires..."
 mkdir -p certbot/conf certbot/www
-chmod -R 755 certbot
+
+# Essayer de changer les permissions (peut échouer si les répertoires appartiennent à root)
+if chmod -R 755 certbot 2>/dev/null; then
+    echo "✅ Permissions configurées"
+elif sudo chmod -R 755 certbot 2>/dev/null; then
+    echo "✅ Permissions configurées (avec sudo)"
+    # Changer le propriétaire pour éviter les problèmes futurs
+    sudo chown -R $USER:$USER certbot 2>/dev/null || true
+else
+    echo "⚠️  Impossible de changer les permissions (non critique)"
+    # Essayer de changer le propriétaire si les répertoires existent déjà
+    if [ -d "certbot" ]; then
+        sudo chown -R $USER:$USER certbot 2>/dev/null || true
+    fi
+fi
 
 # Étape 1: Utiliser la configuration temporaire sans SSL
 echo "📝 Configuration temporaire Nginx (sans SSL)..."

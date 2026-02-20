@@ -1,79 +1,136 @@
-# 🔐 Commandes SSL/Let's Encrypt - Résumé Rapide
+# 🔐 Installation Complète - budget.bkdb.bf
 
-## 📦 Installation Initiale
+## 🚀 Installation Automatique (Recommandé)
 
-### 1. Installer Nginx et Certbot
+```bash
+# Rendre tous les scripts exécutables (recommandé)
+chmod +x *.sh
+
+# Ou rendre uniquement install.sh
+chmod +x install.sh
+
+# Lancer l'installation complète
+./install.sh
+```
+
+Le script `install.sh` installe automatiquement :
+- ✅ Git
+- ✅ Docker et Docker Compose
+- ✅ Nginx
+- ✅ Certbot
+- ✅ Configuration du firewall
+- ✅ Configuration SSL (optionnel)
+- ✅ Renouvellement automatique (optionnel)
+
+## 📋 Installation Manuelle
+
+### 1. Installation Rapide
 
 ```bash
 # Ubuntu/Debian
-sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx
+sudo apt update && sudo apt install -y git docker.io docker-compose nginx certbot python3-certbot-nginx
 
-# CentOS/RHEL  
-sudo yum install -y nginx certbot python3-certbot-nginx
+# CentOS/RHEL
+sudo yum install -y git docker docker-compose nginx certbot python3-certbot-nginx
 ```
 
-### 2. Ouvrir les Ports Firewall
-
-```bash
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-```
-
-### 3. Configurer le Projet
+### 2. Configuration
 
 ```bash
 # Créer les répertoires
 mkdir -p certbot/conf certbot/www
+
+# Configurer les permissions (si nécessaire)
+# Si erreur "Operation not permitted", essayer:
+sudo chown -R $USER:$USER certbot
 chmod -R 755 certbot
 
-# Rendre les scripts exécutables
-chmod +x setup-ssl.sh renew-ssl.sh
+# Ou si les répertoires existent déjà avec root:
+sudo chown -R $USER:$USER certbot && chmod -R 755 certbot
 
-# Mettre à jour .env avec :
+# Configurer .env
 # DOMAIN_NAME=budget.bkdb.bf
 # LETSENCRYPT_EMAIL=votre-email@example.com
 # DJANGO_USE_SSL=true
 # DJANGO_ALLOWED_HOSTS=budget.bkdb.bf,www.budget.bkdb.bf
 ```
 
-### 4. Installation Automatique du Certificat
+### 3. Installation SSL
 
 ```bash
+# Rendre le script exécutable (si nécessaire)
+chmod +x setup-ssl.sh
+
+# Lancer l'installation SSL
 ./setup-ssl.sh
 ```
 
-## 🔄 Renouvellement Automatique
-
-### Configurer le Cron Job
+### 4. Renouvellement Automatique
 
 ```bash
 crontab -e
-
-# Ajouter cette ligne :
-0 3 1 */3 * /chemin/vers/projet/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
+# Ajouter: 0 3 1 */3 * /chemin/vers/projet/renew-ssl.sh >> /var/log/certbot-renew.log 2>&1
 ```
 
-### Renouvellement Manuel
+## ✅ Commandes Utiles
 
 ```bash
-./renew-ssl.sh
-```
+# Démarrer l'application
+docker-compose --profile production up -d
 
-## ✅ Vérifications
-
-```bash
-# Tester SSL
+# Vérifier SSL
 curl -I https://budget.bkdb.bf
 
-# Vérifier les certificats
-docker run --rm -v "$(pwd)/certbot/conf:/etc/letsencrypt" certbot/certbot certificates
+# Renouveler SSL manuellement
+./renew-ssl.sh
 
-# Tester la config Nginx
-docker-compose exec nginx nginx -t
+# Voir les logs
+docker-compose logs -f nginx
 ```
 
-## 🚀 Démarrage Production
+## 🔧 Dépannage
+
+### Erreur "Permission denied" avec les scripts
+
+Si vous obtenez `Permission denied` lors de l'exécution d'un script :
 
 ```bash
-docker-compose --profile production up -d
+# Rendre le script exécutable
+chmod +x setup-ssl.sh
+chmod +x renew-ssl.sh
+chmod +x fix-certbot-permissions.sh
+chmod +x install.sh
+
+# Ou tous en une fois
+chmod +x *.sh
 ```
+
+### Erreur "Operation not permitted" avec chmod
+
+Si vous obtenez cette erreur lors de la création des répertoires certbot :
+
+**Solution rapide (recommandée):**
+```bash
+chmod +x fix-certbot-permissions.sh
+./fix-certbot-permissions.sh
+```
+
+**Solutions manuelles:**
+
+```bash
+# Solution 1: Changer le propriétaire puis les permissions
+sudo chown -R $USER:$USER certbot
+chmod -R 755 certbot
+
+# Solution 2: Si les répertoires n'existent pas encore
+mkdir -p certbot/conf certbot/www
+sudo chown -R $USER:$USER certbot
+chmod -R 755 certbot
+
+# Solution 3: Supprimer et recréer (si les répertoires existent déjà)
+sudo rm -rf certbot
+mkdir -p certbot/conf certbot/www
+chmod -R 755 certbot
+```
+
+**Note:** Les permissions ne sont pas critiques pour Docker. Si `chmod` échoue, Docker devrait quand même fonctionner avec les permissions par défaut.

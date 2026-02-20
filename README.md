@@ -15,7 +15,37 @@ Hub métier Django (auditables & sécurisé) entre **GoodGrants** (source des de
 - `apps/`: bounded contexts (`integrations`, `operators`, `projects`, `conventions`, `budgets`, `workflow`, `audits`, `exports`)
 - `templates/`: templates globaux (HTMX)
 
-### Installation (dev)
+## 🚀 Installation Complète
+
+### Installation Automatique (Recommandé)
+
+```bash
+# Rendre le script exécutable (si nécessaire)
+chmod +x install.sh
+
+# Lancer l'installation complète (Docker, Git, Nginx, Certbot, SSL)
+./install.sh
+```
+
+**Note:** Si vous obtenez "Permission denied" avec les scripts, exécutez :
+```bash
+chmod +x *.sh
+```
+
+Le script `install.sh` installe automatiquement :
+- ✅ Git
+- ✅ Docker et Docker Compose
+- ✅ Nginx
+- ✅ Certbot (Let's Encrypt)
+- ✅ Configuration SSL pour budget.bkdb.bf
+- ✅ Configuration du firewall
+- ✅ Renouvellement automatique SSL
+
+### Installation Manuelle
+
+Voir `COMMANDES_SSL.md` pour les commandes détaillées.
+
+### Installation en Développement
 
 Pré-requis: Python 3.10+ et PostgreSQL.
 
