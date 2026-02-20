@@ -112,6 +112,64 @@ chmod +x git-pull-safe.sh
 
 ## 🔧 Dépannage
 
+### Erreur Nginx "502 Bad Gateway"
+
+Si vous obtenez l'erreur `502 Bad Gateway` :
+
+```bash
+# Solution rapide (recommandée)
+chmod +x fix-502-bad-gateway.sh
+./fix-502-bad-gateway.sh
+```
+
+**Causes possibles:**
+1. Le conteneur Django n'est pas démarré
+2. Django ne répond pas sur le port 8000
+3. Nginx pointe vers le mauvais port
+4. Problème de réseau Docker
+
+**Solutions manuelles:**
+
+```bash
+# 1. Vérifier que Django est démarré
+docker-compose ps web
+# Doit afficher "Up"
+
+# 2. Vérifier que Django répond
+curl http://localhost:8000/
+# Doit retourner une réponse HTTP (même si c'est une erreur 301/400)
+
+# 3. Vérifier les logs Django
+docker-compose logs web | tail -50
+
+# 4. Vérifier la configuration Nginx
+sudo grep "proxy_pass" /etc/nginx/sites-available/budget.bkdb.bf
+# Doit afficher: proxy_pass http://localhost:8000;
+
+# 5. Redémarrer Django
+docker-compose restart web
+
+# 6. Redémarrer Nginx
+sudo systemctl restart nginx
+
+# 7. Vérifier les logs Nginx
+sudo tail -f /var/log/nginx/budget-error.log
+```
+
+**Vérifications supplémentaires:**
+
+```bash
+# Vérifier que le port est exposé
+docker ps | grep budget_web
+# Doit afficher "0.0.0.0:8000->8000/tcp"
+
+# Tester depuis le conteneur
+docker exec budget_web curl http://localhost:8000/
+
+# Vérifier les erreurs Nginx
+sudo tail -20 /var/log/nginx/error.log | grep -i "502\|bad gateway\|upstream"
+```
+
 ### Erreur Django CSRF "La vérification CSRF a échoué"
 
 Si vous obtenez l'erreur `La vérification CSRF a échoué` en production :
