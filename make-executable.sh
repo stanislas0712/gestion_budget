@@ -22,6 +22,9 @@ SCRIPTS=(
     "fix-502-bad-gateway.sh"
     "deploy-web.sh"
     "deploy-web-safe.sh"
+    "check-templates.sh"
+    "copy-templates-to-volume.sh"
+    "diagnose-template-download.sh"
 )
 
 for script in "${SCRIPTS[@]}"; do

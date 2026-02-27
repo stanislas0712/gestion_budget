@@ -1182,9 +1182,9 @@ Système de Gestion de Budget""",
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
     import logging
+    import os
     from django.conf import settings
     from pathlib import Path
-    from django.http import HttpResponse, Http404
     
     logger = logging.getLogger(__name__)
     
@@ -1205,14 +1205,38 @@ def telecharger_template(request, format):
     
     fichier_path = templates_dir / fichiers[format]
     
+    # Logging détaillé pour le diagnostic
+    logger.info(f"🔍 Tentative de téléchargement du template: {format}")
+    logger.info(f"   MEDIA_ROOT: {settings.MEDIA_ROOT}")
+    logger.info(f"   templates_dir: {templates_dir}")
+    logger.info(f"   fichier_path: {fichier_path}")
+    logger.info(f"   fichier_path.exists(): {fichier_path.exists()}")
+    logger.info(f"   templates_dir.exists(): {templates_dir.exists()}")
+    
+    # Vérifier si le répertoire existe
+    if not templates_dir.exists():
+        logger.error(f"❌ Le répertoire templates n'existe pas: {templates_dir}")
+        messages.error(request, f"Le répertoire des templates n'existe pas. Veuillez contacter l'administrateur.")
+        return redirect('budgets:dashboard')
+    
+    # Lister le contenu du répertoire
+    try:
+        contenu = list(templates_dir.iterdir())
+        logger.info(f"   Contenu de templates_dir: {[str(p) for p in contenu]}")
+    except Exception as e:
+        logger.error(f"   Erreur lors de la lecture du répertoire: {e}")
+    
     # Vérifier si le fichier existe
     if not fichier_path.exists():
-        logger.error(f"Fichier template non trouvé: {fichier_path}")
-        logger.error(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
-        logger.error(f"templates_dir existe: {templates_dir.exists()}")
-        if templates_dir.exists():
-            logger.error(f"Contenu de templates_dir: {list(templates_dir.iterdir())}")
+        logger.error(f"❌ Fichier template non trouvé: {fichier_path}")
+        logger.error(f"   Vérification des permissions: {os.access(templates_dir, os.R_OK) if templates_dir.exists() else 'N/A'}")
         messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
+        return redirect('budgets:dashboard')
+    
+    # Vérifier les permissions de lecture
+    if not os.access(fichier_path, os.R_OK):
+        logger.error(f"❌ Permission de lecture refusée pour: {fichier_path}")
+        messages.error(request, "Erreur de permission lors de l'accès au fichier.")
         return redirect('budgets:dashboard')
     
     # Utiliser FileResponse pour un meilleur streaming des fichiers
@@ -1224,8 +1248,15 @@ def telecharger_template(request, format):
             'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         }
         
+        # Obtenir la taille du fichier
+        try:
+            file_size = fichier_path.stat().st_size
+            logger.info(f"   Taille du fichier: {file_size} bytes")
+        except OSError as e:
+            logger.warning(f"   Impossible d'obtenir la taille du fichier: {e}")
+            file_size = None
+        
         # Ouvrir le fichier en mode binaire
-        # FileResponse fermera automatiquement le fichier à la fin de la réponse
         fichier = open(fichier_path, 'rb')
         
         # Créer la réponse avec FileResponse
@@ -1237,25 +1268,25 @@ def telecharger_template(request, format):
         )
         
         # Ajouter le Content-Length pour un meilleur support navigateur
-        try:
-            file_size = fichier_path.stat().st_size
+        if file_size:
             response['Content-Length'] = str(file_size)
-        except OSError as e:
-            logger.warning(f"Impossible d'obtenir la taille du fichier: {e}")
-            file_size = None
         
-        logger.info(f"Téléchargement du fichier: {fichier_path} (format: {format}, taille: {file_size if file_size else 'inconnue'})")
+        # Ajouter des en-têtes pour forcer le téléchargement
+        response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
+        
+        logger.info(f"✅ Téléchargement du fichier réussi: {fichier_path} (format: {format}, taille: {file_size if file_size else 'inconnue'})")
         
         return response
+        
     except FileNotFoundError:
-        logger.error(f"Fichier non trouvé: {fichier_path}")
+        logger.error(f"❌ Fichier non trouvé lors de l'ouverture: {fichier_path}")
         messages.error(request, "Le fichier demandé n'a pas été trouvé.")
         return redirect('budgets:dashboard')
-    except PermissionError:
-        logger.error(f"Permission refusée pour: {fichier_path}")
+    except PermissionError as e:
+        logger.error(f"❌ Permission refusée pour: {fichier_path} - {e}")
         messages.error(request, "Erreur de permission lors de l'accès au fichier.")
         return redirect('budgets:dashboard')
     except Exception as e:
-        logger.exception(f"Erreur lors du téléchargement du fichier {fichier_path}: {str(e)}")
+        logger.exception(f"❌ Erreur inattendue lors du téléchargement du fichier {fichier_path}: {str(e)}")
         messages.error(request, f"Erreur lors du téléchargement du fichier: {str(e)}")
         return redirect('budgets:dashboard')

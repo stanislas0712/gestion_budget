@@ -67,23 +67,74 @@ fi
 # S'assurer que les templates sont disponibles dans le volume media
 echo "📄 Vérification des templates dans media/templates..."
 TEMPLATES_DIR="/app/media/templates"
-TEMPLATES_SOURCE="/app/media/templates"
 
 # Créer le répertoire templates s'il n'existe pas
 mkdir -p "$TEMPLATES_DIR"
 
+# Liste des templates à copier
+TEMPLATE_FILES=("template_budget.xlsx" "template_budget.pdf" "template_budget.docx")
+
+# Le code source est monté via .:/app, donc les templates sont à /app/media/templates
+# Mais le volume media_volume peut écraser ce répertoire, donc on doit copier depuis le code source
+# Le code source est accessible car il est monté AVANT le volume media_volume
+
+# Chercher les templates dans plusieurs emplacements possibles
+SOURCE_PATHS=(
+    "/app/media/templates"  # Depuis le code source monté
+)
+
 # Copier les templates depuis le code source si le volume est vide
-if [ -d "$TEMPLATES_SOURCE" ] && [ "$(ls -A $TEMPLATES_SOURCE 2>/dev/null)" ]; then
-    # Si le répertoire source contient des fichiers, les copier dans le volume
-    for template_file in "$TEMPLATES_SOURCE"/*; do
-        if [ -f "$template_file" ]; then
-            filename=$(basename "$template_file")
-            if [ ! -f "$TEMPLATES_DIR/$filename" ]; then
-                echo "   Copie du template: $filename"
-                cp "$template_file" "$TEMPLATES_DIR/$filename"
-            fi
+for template_file in "${TEMPLATE_FILES[@]}"; do
+    dest_file="$TEMPLATES_DIR/$template_file"
+    
+    # Si le fichier de destination existe déjà et n'est pas vide, on le garde
+    if [ -f "$dest_file" ]; then
+        size=$(stat -c%s "$dest_file" 2>/dev/null || echo "0")
+        if [ "$size" -gt 0 ]; then
+            echo "   ✅ Template $template_file existe déjà (${size} bytes)"
+            continue
+        fi
+    fi
+    
+    # Chercher le fichier source dans les emplacements possibles
+    source_found=false
+    for source_path in "${SOURCE_PATHS[@]}"; do
+        source_file="$source_path/$template_file"
+        if [ -f "$source_file" ]; then
+            echo "   📄 Copie du template: $template_file depuis $source_path"
+            cp -f "$source_file" "$dest_file"
+            chmod 644 "$dest_file" 2>/dev/null || true
+            source_found=true
+            break
         fi
     done
+    
+    if [ "$source_found" = false ]; then
+        echo "   ⚠️  Template source non trouvé: $template_file"
+        echo "      Recherché dans: ${SOURCE_PATHS[*]}"
+    fi
+done
+
+# Vérifier que les templates sont bien présents
+echo "📋 Vérification finale des templates:"
+all_present=true
+for template_file in "${TEMPLATE_FILES[@]}"; do
+    if [ -f "$TEMPLATES_DIR/$template_file" ]; then
+        size=$(stat -c%s "$TEMPLATES_DIR/$template_file" 2>/dev/null || echo "0")
+        if [ "$size" -gt 0 ]; then
+            echo "   ✅ $template_file (${size} bytes)"
+        else
+            echo "   ⚠️  $template_file existe mais est vide"
+            all_present=false
+        fi
+    else
+        echo "   ❌ $template_file manquant"
+        all_present=false
+    fi
+done
+
+if [ "$all_present" = false ]; then
+    echo "   ⚠️  Certains templates sont manquants. Utilisez copy-templates-to-volume.sh pour les copier manuellement."
 fi
 
 # Créer un superutilisateur si les variables d'environnement sont définies
