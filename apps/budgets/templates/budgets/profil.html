@@ -151,15 +151,30 @@
                     {% endif %}
                     <div class="mb-3">
                         <label class="form-label">Ancien mot de passe <span class="text-danger">*</span></label>
-                        {{ password_form.old_password }}
+                        <div class="input-group">
+                            {{ password_form.old_password }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nouveau mot de passe <span class="text-danger">*</span></label>
-                        {{ password_form.new_password1 }}
+                        <div class="input-group">
+                            {{ password_form.new_password1 }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Confirmer le nouveau mot de passe <span class="text-danger">*</span></label>
-                        {{ password_form.new_password2 }}
+                        <div class="input-group">
+                            {{ password_form.new_password2 }}
+                            <button type="button" class="btn btn-outline-secondary" onclick="togglePwd(this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -175,6 +190,19 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+function togglePwd(btn) {
+    const input = btn.closest('.input-group').querySelector('input');
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
 {% if show_password_modal %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {

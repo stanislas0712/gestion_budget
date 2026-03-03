@@ -176,6 +176,28 @@
             100% { transform: translateX(-50%); }
         }
 
+        /* Bandeau statique sur mobile */
+        @media (max-width: 767px) {
+            .appel-bandeau {
+                overflow: visible;
+                white-space: normal;
+                padding: 8px 1rem;
+                text-align: center;
+            }
+            .appel-bandeau-track {
+                display: block;
+                animation: none;
+            }
+            .appel-bandeau-text {
+                display: block;
+                padding-left: 0;
+            }
+            /* Cacher la copie dupliquée sur mobile */
+            .appel-bandeau-copy {
+                display: none;
+            }
+        }
+
         /* Badge statut */
         .badge-statut {
             font-size: 0.68rem;
@@ -202,38 +224,93 @@
             color: var(--xero-text);
             margin-bottom: 0.3rem;
         }
+
+        /* Navbar responsive */
+        @media (max-width: 767px) {
+            .xero-nav {
+                height: auto;
+                padding: 0.5rem 1rem;
+                flex-wrap: wrap;
+            }
+            .navbar-collapse {
+                background: var(--xero-nav);
+                padding: 0.5rem 0;
+                overflow: visible !important;
+            }
+            .navbar-collapse .nav-link {
+                padding: 0.5rem 0;
+            }
+            /* Dropdown en position statique sur mobile (pas de coupure) */
+            .navbar-collapse .dropdown-menu {
+                position: static !important;
+                float: none;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                padding: 0 0 0 1rem;
+            }
+            .navbar-collapse .dropdown-menu .dropdown-item {
+                color: rgba(255, 255, 255, 0.85);
+                padding: 0.4rem 0;
+            }
+            .navbar-collapse .dropdown-menu .dropdown-item:hover {
+                background: transparent;
+                color: #fff;
+            }
+            .navbar-collapse .dropdown-menu hr.dropdown-divider {
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        /* Container responsive */
+        @media (max-width: 576px) {
+            .container, .container-fluid {
+                padding-left: 0.75rem;
+                padding-right: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
     {% if user.is_authenticated %}
-    <nav class="xero-nav">
+    <nav class="xero-nav navbar navbar-expand-md">
         <a class="navbar-brand me-4" href="{% url 'budgets:dashboard' %}">Plateforme Budgets</a>
 
-        <div class="d-flex align-items-center me-auto gap-1">
-            <a class="nav-link active" href="{% url 'budgets:dashboard' %}">Tableau de bord</a>
-        </div>
+        {# Hamburger pour mobile #}
+        <button class="navbar-toggler border-0 ms-auto me-2" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Menu">
+            <i class="bi bi-list text-white fs-4"></i>
+        </button>
 
-        <div class="d-flex align-items-center gap-2">
-            {% if user.is_staff or user.is_superuser %}
-                <span class="badge-admin">Admin</span>
-            {% endif %}
-            <div class="dropdown">
-                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-circle me-1"></i>{{ user.get_full_name|default:user.username }}
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{% url 'budgets:profil' %}"><i class="bi bi-person me-2"></i>Profil</a></li>
-                    {% if user.is_staff %}
-                    <li><a class="dropdown-item" href="/manager/" target="_blank"><i class="bi bi-gear me-2"></i>Administration</a></li>
+        <div class="collapse navbar-collapse" id="navbarContent">
+            <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center w-100">
+                <div class="me-auto">
+                    <a class="nav-link active" href="{% url 'budgets:dashboard' %}">Tableau de bord</a>
+                </div>
+                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 mt-2 mt-md-0">
+                    {% if user.is_staff or user.is_superuser %}
+                        <span class="badge-admin">Admin</span>
                     {% endif %}
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form method="post" action="{% url 'logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Deconnexion</button>
-                        </form>
-                    </li>
-                </ul>
+                    <div class="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle me-1"></i>{{ user.get_full_name|default:user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'budgets:profil' %}"><i class="bi bi-person me-2"></i>Profil</a></li>
+                            {% if user.is_staff %}
+                            <li><a class="dropdown-item" href="/manager/" target="_blank"><i class="bi bi-gear me-2"></i>Administration</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="post" action="{% url 'logout' %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right me-2"></i>Deconnexion</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -242,6 +319,7 @@
     {% if appel_global %}
     <div class="appel-bandeau {% if appel_fin_proche %}appel-bandeau-danger{% else %}appel-bandeau-success{% endif %}">
         <div class="appel-bandeau-track">
+            {# Copie 1 - toujours visible #}
             <span class="appel-bandeau-text">
                 {% if appel_fin_proche %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% endif %}
                 Appel a projet : {{ appel_global.nom }}
@@ -253,6 +331,9 @@
                 {% elif appel_jours_restants == 0 %}Dernier jour !
                 {% else %}Appel en cours de cloture{% endif %}
                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            </span>
+            {# Copie 2 - uniquement pour l'effet défilant sur desktop #}
+            <span class="appel-bandeau-text appel-bandeau-copy">
                 {% if appel_fin_proche %}<i class="bi bi-exclamation-triangle-fill me-1"></i>{% endif %}
                 Appel a projet : {{ appel_global.nom }}
                 &nbsp;&bull;&nbsp;

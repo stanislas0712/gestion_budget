@@ -50,8 +50,8 @@
                                     {% include 'partials/subline_row.html' with article=article budget=budget %}
                                 {% endfor %}
 
-                                {# Formulaire de saisie visible pour l'operateur si modifiable, toujours pour l'admin #}
-                                {% if budget.peut_etre_modifie or user.is_staff or user.is_superuser %}
+                                {# Formulaire de saisie visible uniquement pour l'operateur si le budget est modifiable #}
+                                {% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
                                 <tr class="bg-light article-form-row" data-groupe-id="{{ groupe.id }}" id="form-groupe-{{ groupe.id }}">
                                     <td class="ps-5"></td>
                                     <td>
@@ -82,8 +82,12 @@
                                     </td>
                                     <td class="text-muted text-center">-</td>
                                     <td class="text-center">
-                                        <small class="text-muted"><i class="bi bi-keyboard"></i> Entrée</small>
+                                        <button type="button" class="btn btn-success btn-sm btn-save-inline"
+                                                title="Enregistrer (Entrée)">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
                                     </td>
+
                                 </tr>
                                 {% endif %}
 
@@ -117,21 +121,14 @@
 
 {# Zone admin en bas : boutons d'action ou message de statut #}
 {% if user.is_staff or user.is_superuser %}
-    {# Bouton modifier toujours visible pour l'admin #}
-    <div class="text-center mt-4 mb-3">
-        <button type="button" class="btn btn-xero-outline" data-bs-toggle="modal" data-bs-target="#modalModifierBudget">
-            <i class="bi bi-pencil me-1"></i>Modifier les infos du budget
-        </button>
-    </div>
-
     {% if budget.statut == 'soumis' %}
     <div class="d-flex justify-content-center gap-3 mb-5">
         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalApprouver">
             <i class="bi bi-check-circle-fill me-1"></i>Valider
         </button>
-        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#modalDemanderModification">
+        <a href="{% url 'budgets:demander_modification' budget.uuid %}" class="btn btn-warning">
             <i class="bi bi-pencil-square me-1"></i>Demander modification
-        </button>
+        </a>
         <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalRejeter">
             <i class="bi bi-x-circle-fill me-1"></i>Rejeter
         </button>
@@ -237,6 +234,20 @@ function verifierAvantSoumission() {
                 }
             });
         });
+
+        // Bouton Enregistrer cliquable
+        const saveBtn = formRow.querySelector('.btn-save-inline');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                const designation = formRow.querySelector('[name="designation"]').value;
+                if (!designation.trim()) {
+                    alert('La designation est obligatoire');
+                    inputs[0].focus();
+                    return;
+                }
+                saveArticle(formRow, groupeId, inputs);
+            });
+        }
     });
 
     function updateTotals() {

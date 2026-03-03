@@ -1,4 +1,5 @@
 import threading
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse
 from django.db.models import Q
@@ -11,20 +12,22 @@ from .models import InfosBudget, GroupeArticle, SousLigneArticle, SectionBudgeta
 from .forms import SousLigneArticleForm, InfosBudgetForm, InfosBudgetCreationForm, InscriptionOperateurForm
 
 
-def _envoyer_email_async(subject, message, recipient_list):
+def _envoyer_email_async(subject, message, recipient_list, html_message=None):
     """Envoie un email dans un thread séparé pour ne pas bloquer la requête."""
-    from django.core.mail import send_mail
+    from django.core.mail import EmailMultiAlternatives
     from django.conf import settings
 
     def _send():
         try:
-            send_mail(
+            email = EmailMultiAlternatives(
                 subject=subject,
-                message=message,
+                body=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=recipient_list,
-                fail_silently=True,
+                to=recipient_list,
             )
+            if html_message:
+                email.attach_alternative(html_message, "text/html")
+            email.send(fail_silently=False)
         except Exception as e:
             print(f"Erreur envoi email: {e}")
 
@@ -1068,36 +1071,52 @@ def demander_modification(request, uuid):
             messages.error(request, "Veuillez indiquer le motif de la demande de modification.")
             return render(request, 'budgets/demander_modification.html', {'budget': budget})
 
-        # Passer directement en modification autorisée
+        # Envoyer l'email D'ABORD — changer le statut seulement si l'envoi réussit
+        if not (budget.created_by and budget.created_by.email):
+            messages.error(request, "Impossible d'envoyer : l'opérateur n'a pas d'adresse email.")
+            return render(request, 'budgets/demander_modification.html', {'budget': budget})
+
+        subject = f'Demande de modification – {budget.titre_projet}'
+        try:
+            from django.core.mail import EmailMultiAlternatives
+            budget_url = request.build_absolute_uri(f'/budgets/{budget.uuid}/')
+            # Corps texte (fallback)
+            message_txt = motif + f"\n\nAccédez à votre budget ici : {budget_url}"
+            # Corps HTML avec bouton
+            corps_html = motif.replace('\n', '<br>')
+            html_message = f"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;padding:24px;">
+  <p>{corps_html}</p>
+  <br>
+  <table cellpadding="0" cellspacing="0">
+    <tr><td style="background:#0b57d0;border-radius:20px;">
+      <a href="{budget_url}" style="display:inline-block;padding:10px 24px;color:#fff;font-size:14px;font-weight:500;text-decoration:none;">
+        Accéder à mon budget
+      </a>
+    </td></tr>
+  </table>
+</body></html>"""
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message_txt,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[budget.created_by.email],
+            )
+            email.attach_alternative(html_message, 'text/html')
+            email.send(fail_silently=False)
+        except Exception as e:
+            messages.error(request, f"Échec de l'envoi de l'email : {e}. Le statut du budget n'a pas été modifié.")
+            return render(request, 'budgets/demander_modification.html', {'budget': budget})
+
+        # Email envoyé avec succès → on change le statut
         budget.statut = InfosBudget.STATUT_MODIFICATION_AUTORISEE
         budget.motif_demande_modification = motif
         budget.date_demande_modification = timezone.now()
         budget.date_autorisation_modification = timezone.now()
         budget.save()
 
-        # Envoyer un email à l'opérateur (en arrière-plan)
-        budget_url = request.build_absolute_uri(f'/budgets/{budget.uuid}/')
-        if budget.created_by and budget.created_by.email:
-            _envoyer_email_async(
-                subject=f'[MODIFICATION DEMANDÉE] {budget.titre_projet}',
-                message=f"""Bonjour {budget.created_by.get_full_name() or budget.created_by.username},
-
-L'administrateur vous demande de modifier votre budget "{budget.titre_projet}".
-
-Motif de la demande :
-{motif}
-
-Vous pouvez maintenant modifier votre budget et le soumettre à nouveau.
-
-Cliquez ici pour accéder à votre budget :
-{budget_url}
-
-Cordialement,
-Système de Gestion de Budget""",
-                recipient_list=[budget.created_by.email],
-            )
-
-        messages.success(request, "La demande de modification a été envoyée à l'opérateur par email. Le budget est maintenant modifiable.")
+        messages.success(request, "Email envoyé à l'opérateur. Le budget est maintenant modifiable.")
         return redirect('budgets:budget_detail', uuid=uuid)
 
     return render(request, 'budgets/demander_modification.html', {'budget': budget})
@@ -1177,6 +1196,14 @@ Système de Gestion de Budget""",
 
     messages.success(request, "Le budget a été rejeté. L'opérateur a été notifié.")
     return redirect('budgets:budget_detail', uuid=uuid)
+
+@login_required
+def preview_email_modification(request):
+    """Prévisualisation de l'email de demande de modification (admin uniquement)"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('budgets:dashboard')
+    return render(request, 'budgets/email_preview_modification.html')
+
 
 @login_required
 def telecharger_template(request, format):
