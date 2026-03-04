@@ -1209,18 +1209,11 @@ def preview_email_modification(request):
 @login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
-<<<<<<< HEAD
     import logging
     import os
     from django.conf import settings
-    from pathlib import Path
     
     logger = logging.getLogger(__name__)
-    
-    # Définir les chemins des templates
-    templates_dir = Path(settings.MEDIA_ROOT) / 'templates'
-=======
->>>>>>> developpement
     
     # Mapping des formats vers les fichiers
     fichiers = {
@@ -1234,68 +1227,6 @@ def telecharger_template(request, format):
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
-<<<<<<< HEAD
-    fichier_path = templates_dir / fichiers[format]
-    
-    # Logging détaillé pour le diagnostic
-    logger.info(f"🔍 Tentative de téléchargement du template: {format}")
-    logger.info(f"   MEDIA_ROOT: {settings.MEDIA_ROOT}")
-    logger.info(f"   templates_dir: {templates_dir}")
-    logger.info(f"   fichier_path: {fichier_path}")
-    logger.info(f"   fichier_path.exists(): {fichier_path.exists()}")
-    logger.info(f"   templates_dir.exists(): {templates_dir.exists()}")
-    
-    # Vérifier si le répertoire existe
-    if not templates_dir.exists():
-        logger.error(f"❌ Le répertoire templates n'existe pas: {templates_dir}")
-        messages.error(request, f"Le répertoire des templates n'existe pas. Veuillez contacter l'administrateur.")
-        return redirect('budgets:dashboard')
-    
-    # Lister le contenu du répertoire
-    try:
-        contenu = list(templates_dir.iterdir())
-        logger.info(f"   Contenu de templates_dir: {[str(p) for p in contenu]}")
-    except Exception as e:
-        logger.error(f"   Erreur lors de la lecture du répertoire: {e}")
-    
-    # Vérifier si le fichier existe
-    if not fichier_path.exists():
-        logger.error(f"❌ Fichier template non trouvé: {fichier_path}")
-        logger.error(f"   Vérification des permissions: {os.access(templates_dir, os.R_OK) if templates_dir.exists() else 'N/A'}")
-        messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
-        return redirect('budgets:dashboard')
-    
-    # Vérifier les permissions de lecture
-    if not os.access(fichier_path, os.R_OK):
-        logger.error(f"❌ Permission de lecture refusée pour: {fichier_path}")
-        messages.error(request, "Erreur de permission lors de l'accès au fichier.")
-        return redirect('budgets:dashboard')
-    
-    # Utiliser FileResponse pour un meilleur streaming des fichiers
-    try:
-        # Définir le type de contenu selon le format
-        content_types = {
-            'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'pdf': 'application/pdf',
-            'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        }
-        
-        # Obtenir la taille du fichier
-        try:
-            file_size = fichier_path.stat().st_size
-            logger.info(f"   Taille du fichier: {file_size} bytes")
-        except OSError as e:
-            logger.warning(f"   Impossible d'obtenir la taille du fichier: {e}")
-            file_size = None
-        
-        # Ouvrir le fichier en mode binaire
-        fichier = open(fichier_path, 'rb')
-        
-        # Créer la réponse avec FileResponse
-        response = FileResponse(
-            fichier,
-            content_type=content_types.get(format, 'application/octet-stream'),
-=======
     # Chercher le fichier dans plusieurs emplacements possibles (pour Docker et développement)
     emplacements_possibles = [
         Path(settings.MEDIA_ROOT) / 'templates',  # Emplacement standard
@@ -1310,17 +1241,17 @@ def telecharger_template(request, format):
             fichier_trouve = chemin_test
             break
     
-    # Debug - toujours afficher en cas de problème
-    if settings.DEBUG or not fichier_trouve:
-        print(f"[DEBUG] Recherche du template {format}")
-        print(f"[DEBUG] MEDIA_ROOT: {settings.MEDIA_ROOT}")
-        print(f"[DEBUG] BASE_DIR: {settings.BASE_DIR}")
-        for emplacement in emplacements_possibles:
-            chemin_test = emplacement / fichiers[format]
-            print(f"[DEBUG] Testé: {chemin_test} -> Existe: {chemin_test.exists()}")
+    # Logging détaillé pour le diagnostic
+    logger.info(f"🔍 Tentative de téléchargement du template: {format}")
+    logger.info(f"   MEDIA_ROOT: {settings.MEDIA_ROOT}")
+    logger.info(f"   BASE_DIR: {settings.BASE_DIR}")
+    for emplacement in emplacements_possibles:
+        chemin_test = emplacement / fichiers[format]
+        logger.info(f"   Testé: {chemin_test} -> Existe: {chemin_test.exists()}")
     
     # Vérifier si le fichier existe
     if not fichier_trouve:
+        logger.error(f"❌ Fichier template non trouvé: {fichiers[format]}")
         messages.warning(
             request, 
             f"Le template {format.upper()} n'est pas encore disponible. "
@@ -1330,6 +1261,12 @@ def telecharger_template(request, format):
     
     fichier_path = fichier_trouve
     
+    # Vérifier les permissions de lecture
+    if not os.access(fichier_path, os.R_OK):
+        logger.error(f"❌ Permission de lecture refusée pour: {fichier_path}")
+        messages.error(request, "Erreur de permission lors de l'accès au fichier.")
+        return redirect('budgets:dashboard')
+    
     # Définir le type de contenu selon le format
     content_types = {
         'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1338,27 +1275,36 @@ def telecharger_template(request, format):
     }
     
     try:
-        # FileResponse peut accepter un chemin directement et gère l'ouverture/fermeture automatiquement
-        # Ou on peut ouvrir le fichier manuellement (FileResponse le fermera automatiquement)
+        # Obtenir la taille du fichier
+        try:
+            file_size = fichier_path.stat().st_size
+            logger.info(f"   Taille du fichier: {file_size} bytes")
+        except OSError as e:
+            logger.warning(f"   Impossible d'obtenir la taille du fichier: {e}")
+            file_size = None
+        
+        # Ouvrir le fichier en mode binaire
         file_handle = open(fichier_path, 'rb')
+        
+        # Créer la réponse avec FileResponse
         response = FileResponse(
             file_handle,
-            content_type=content_types[format],
->>>>>>> developpement
+            content_type=content_types.get(format, 'application/octet-stream'),
             as_attachment=True,
             filename=fichiers[format]
         )
         
-<<<<<<< HEAD
         # Ajouter le Content-Length pour un meilleur support navigateur
         if file_size:
             response['Content-Length'] = str(file_size)
         
-        # Ajouter des en-têtes pour forcer le téléchargement
-        response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
+        # Headers supplémentaires pour forcer le téléchargement
+        # Note: Content-Disposition est déjà défini par as_attachment=True
+        response['X-Content-Type-Options'] = 'nosniff'
         
         logger.info(f"✅ Téléchargement du fichier réussi: {fichier_path} (format: {format}, taille: {file_size if file_size else 'inconnue'})")
         
+        # FileResponse fermera automatiquement le fichier quand la réponse est terminée
         return response
         
     except FileNotFoundError:
@@ -1371,19 +1317,8 @@ def telecharger_template(request, format):
         return redirect('budgets:dashboard')
     except Exception as e:
         logger.exception(f"❌ Erreur inattendue lors du téléchargement du fichier {fichier_path}: {str(e)}")
-        messages.error(request, f"Erreur lors du téléchargement du fichier: {str(e)}")
-=======
-        # Headers supplémentaires pour forcer le téléchargement
-        # Note: Content-Disposition est déjà défini par as_attachment=True
-        response['X-Content-Type-Options'] = 'nosniff'
-        
-        # FileResponse fermera automatiquement le fichier quand la réponse est terminée
-        return response
-            
-    except Exception as e:
         messages.error(request, f"Erreur lors du téléchargement: {str(e)}")
         if settings.DEBUG:
             import traceback
-            print(f"[DEBUG] Erreur complète: {traceback.format_exc()}")
->>>>>>> developpement
+            logger.debug(f"Traceback complet: {traceback.format_exc()}")
         return redirect('budgets:dashboard')
