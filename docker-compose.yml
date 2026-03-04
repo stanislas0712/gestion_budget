@@ -51,6 +51,11 @@ services:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      # Bind mount optionnel pour les templates en développement
+      # Si le dossier ./media/templates existe localement, il sera monté
+      # En production, les templates seront copiés depuis l'image Docker au démarrage
+      # Note: Docker Compose ignore ce mount si le chemin source n'existe pas
+      - ./media/templates:/app/media/templates_source:ro
     ports:
       - 8000:8000
     env_file:

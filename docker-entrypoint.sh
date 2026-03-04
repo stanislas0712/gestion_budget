@@ -55,6 +55,60 @@ else
     echo "💡 L'application va continuer, mais certaines fonctionnalités peuvent ne pas fonctionner"
 fi
 
+# Copier les templates dans le volume media si nécessaire
+echo "📋 Vérification et copie des templates..."
+# Créer le dossier templates dans media s'il n'existe pas
+mkdir -p /app/media/templates
+
+# Vérifier si les templates sont déjà dans la destination
+if [ -f "/app/media/templates/template_budget.xlsx" ]; then
+    echo "✅ Templates déjà présents dans /app/media/templates"
+else
+    # Chercher les templates dans plusieurs emplacements possibles (ordre de priorité)
+    TEMPLATE_SOURCE=""
+    
+    # 1. Vérifier le bind mount (développement - si le dossier existe localement)
+    if [ -f "/app/media/templates_source/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/media/templates_source"
+        echo "📋 Templates trouvés dans le bind mount (développement)"
+    # 2. Vérifier dans /app/templates_source (copié lors du build Docker pour production)
+    elif [ -f "/app/templates_source/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/templates_source"
+        echo "📋 Templates trouvés dans l'image Docker (production)"
+    # 3. Chercher dans le code source monté (si accessible, non masqué par volume)
+    elif [ -f "/app/media/templates/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/media/templates"
+        echo "📋 Templates trouvés dans le code source"
+    # 4. Utiliser la commande Django pour chercher et copier (dernière tentative)
+    else
+        echo "📋 Recherche des templates via la commande Django..."
+        $PYTHON_CMD manage.py copier_templates 2>&1 || {
+            echo "⚠️  Impossible de copier les templates automatiquement"
+            echo "💡 Solutions possibles:"
+            echo "   1. Exécutez: docker-compose exec web python manage.py copier_templates"
+            echo "   2. Ou copiez manuellement: docker cp media/templates/template_budget.xlsx budget_web:/app/media/templates/"
+        }
+        # Vérifier à nouveau après la commande
+        if [ -f "/app/media/templates/template_budget.xlsx" ]; then
+            echo "✅ Templates copiés avec succès"
+            TEMPLATE_SOURCE=""  # Déjà copié, pas besoin de copier à nouveau
+        fi
+    fi
+    
+    # Si on a trouvé une source, copier les fichiers vers la destination
+    if [ -n "$TEMPLATE_SOURCE" ] && [ "$TEMPLATE_SOURCE" != "/app/media/templates" ]; then
+        echo "📋 Copie des templates depuis $TEMPLATE_SOURCE vers /app/media/templates..."
+        if cp -r "$TEMPLATE_SOURCE"/* /app/media/templates/ 2>/dev/null; then
+            echo "✅ Templates copiés avec succès"
+        else
+            echo "⚠️  Erreur lors de la copie, tentative avec la commande Django..."
+            $PYTHON_CMD manage.py copier_templates --source "$TEMPLATE_SOURCE" 2>&1 || {
+                echo "❌ Impossible de copier les templates"
+            }
+        fi
+    fi
+fi
+
 # Ne pas réactiver set -e ici pour permettre la création du superutilisateur même en cas d'erreur mineure
 # set -e sera réactivé juste avant l'exécution de la commande finale
 

@@ -46,6 +46,18 @@
 
     {% include 'budgets/synthese_header.html' %}
 
+    {# Avertissements - operateurs uniquement #}
+    {% if not user.is_staff and not user.is_superuser %}
+    <div class="alert alert-danger mb-4 py-3 px-4">
+        <div class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Avertissements</div>
+        <ol class="mb-0 ps-3 small">
+            <li class="mb-1">Veuillez noter que le budget ne prend pas en considération les achats d'équipements ou de matériels pédagogiques. Ces éléments ne sont pas éligibles.</li>
+            <li class="mb-1">Veuillez noter que le coût d'achat de la matière d'œuvre demandé ne doit pas être supérieur à <strong>30%</strong> du budget global.</li>
+            <li>Veuillez noter que le coût total de votre projet de formation-insertion ne devra pas excéder <strong>32 797 850 FCFA</strong>, soit <strong>50 000 euros</strong>.</li>
+        </ol>
+    </div>
+    {% endif %}
+
     {# Alerte A1 > 30% #}
     <div id="alerte-a1" class="alert alert-danger mb-4 d-none">
         <strong>ATTENTION :</strong> A.1 (Matieres d'oeuvre) represente
@@ -215,35 +227,7 @@
     </div>
 </div>
 
-{# Modal Demander modification #}
-<div class="modal fade" id="modalDemanderModification" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form method="post" action="{% url 'budgets:demander_modification' budget.uuid %}">
-                {% csrf_token %}
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title text-dark"><i class="bi bi-pencil-square me-2"></i>Demander une modification</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-info small">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Un email sera envoye a <strong>{{ budget.created_by.get_full_name|default:budget.created_by.username }}</strong>.
-                    </div>
-                    <label class="form-label fw-semibold">Motif de la demande <span class="text-danger">*</span></label>
-                    <textarea name="motif" class="form-control" rows="4" required
-                              placeholder="Decrivez les modifications que l'operateur doit apporter..."></textarea>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
-                    <button type="submit" class="btn btn-warning text-dark">
-                        <i class="bi bi-send me-1"></i>Envoyer la demande
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+{# (modal demander modification supprimée - action directe via mailto:) #}
 
 {# Modal Rejeter #}
 <div class="modal fade" id="modalRejeter" tabindex="-1" aria-hidden="true">
@@ -292,5 +276,6 @@ document.addEventListener('DOMContentLoaded', function() {
     new bootstrap.Modal(document.getElementById('modalModifierBudget')).show();
 });
 {% endif %}
+
 </script>
 {% endblock %}

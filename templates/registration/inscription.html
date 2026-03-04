@@ -1,11 +1,12 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription - Plateforme Budgets</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" integrity="sha512-dPXYcDub/aeb08c63jRq/k6GaKccl256JQy/AnOq7CAnEZ9FzSL9wSbcZkM2NrRwuBZu8xf/6lJZ4qQ==" crossorigin="anonymous">
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
     <style>
         * { box-sizing: border-box; }
         body {
@@ -146,7 +147,12 @@
 
                 <div class="mb-3">
                     <label for="id_password1" class="form-label">Mot de passe</label>
-                    {{ form.password1 }}
+                    <div class="input-group">
+                        {{ form.password1 }}
+                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password1', this)" tabindex="-1" title="Afficher/masquer le mot de passe" aria-label="Afficher/masquer le mot de passe">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                     {% if form.password1.errors %}
                         <div class="field-error">{{ form.password1.errors.0 }}</div>
                     {% endif %}
@@ -154,7 +160,12 @@
 
                 <div class="mb-4">
                     <label for="id_password2" class="form-label">Confirmer le mot de passe</label>
-                    {{ form.password2 }}
+                    <div class="input-group">
+                        {{ form.password2 }}
+                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password2', this)" tabindex="-1" title="Afficher/masquer le mot de passe" aria-label="Afficher/masquer le mot de passe">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
                     {% if form.password2.errors %}
                         <div class="field-error">{{ form.password2.errors.0 }}</div>
                     {% endif %}
@@ -172,5 +183,18 @@
     <footer class="page-footer">
         <small>Plateforme de Gestion Budgetaire &copy; 2026</small>
     </footer>
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+    </script>
 </body>
 </html>

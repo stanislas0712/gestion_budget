@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prévisualisation – Demande de modification</title>
+  <style>
+    body { margin: 0; padding: 0; background: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; }
+
+    /* Barre de prévisualisation */
+    .preview-bar {
+      background: #1e1e2e;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .preview-bar span { opacity: 0.6; }
+    .preview-bar strong { color: #00b4c5; }
+
+    /* Simulation boite Gmail */
+    .gmail-wrapper {
+      max-width: 860px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+    .gmail-header {
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid #e8eaed;
+    }
+    .gmail-subject {
+      font-size: 22px;
+      font-weight: 400;
+      color: #202124;
+      margin: 0 0 16px;
+    }
+    .gmail-meta {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .gmail-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #13353b;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .gmail-from { font-size: 14px; color: #202124; font-weight: 600; }
+    .gmail-from-email { font-size: 13px; color: #5f6368; font-weight: 400; }
+    .gmail-date { font-size: 12px; color: #5f6368; margin-left: auto; white-space: nowrap; }
+    .gmail-to { font-size: 13px; color: #5f6368; }
+    .gmail-body { padding: 24px 28px; }
+
+    /* Email content */
+    .email-content {
+      background: #f4f5f7;
+      padding: 40px 0;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barre de prévisualisation -->
+  <div class="preview-bar">
+    <span>👁 PRÉVISUALISATION EMAIL</span>
+    <span>—</span>
+    <span>De : <strong>Benkadibaara &lt;notification@bkdb.bf&gt;</strong></span>
+    <span>—</span>
+    <span>Objet : <strong>Demande de modification – Projet de formation couture</strong></span>
+  </div>
+
+  <!-- Simulation boite Gmail -->
+  <div class="gmail-wrapper">
+    <div class="gmail-header">
+      <h1 class="gmail-subject">Demande de modification – Projet de formation couture</h1>
+      <div class="gmail-meta">
+        <div class="gmail-avatar">B</div>
+        <div>
+          <div>
+            <span class="gmail-from">Benkadibaara</span>
+            <span class="gmail-from-email">&lt;notification@bkdb.bf&gt;</span>
+          </div>
+          <div class="gmail-to">à <strong>ik8529614@gmail.com</strong></div>
+        </div>
+        <div class="gmail-date">3 mars 2026, 17:30</div>
+      </div>
+    </div>
+
+    <div class="gmail-body">
+      <!-- ===== CONTENU EXACT DE L'EMAIL ENVOYÉ PAR DJANGO ===== -->
+      <div class="email-content">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:40px 0;">
+          <tr><td align="center">
+            <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+              <!-- En-tête -->
+              <tr><td style="background:#13353b;padding:28px 40px;">
+                <h1 style="margin:0;color:#fff;font-size:20px;font-weight:600;">Plateforme de Gestion Budgétaire</h1>
+              </td></tr>
+
+              <!-- Bandeau statut -->
+              <tr><td style="background:#f59e0b;padding:12px 40px;">
+                <p style="margin:0;color:#fff;font-size:14px;font-weight:600;">⚠ Demande de modification de budget</p>
+              </td></tr>
+
+              <!-- Corps -->
+              <tr><td style="padding:36px 40px;">
+                <p style="margin:0 0 16px;font-size:15px;color:#333;">Bonjour <strong>Jean Dupont</strong>,</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#555;line-height:1.6;">
+                  L'administrateur vous demande de modifier votre budget :
+                </p>
+
+                <!-- Carte budget -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fa;border-radius:6px;border-left:4px solid #13353b;margin-bottom:24px;">
+                  <tr><td style="padding:16px 20px;">
+                    <p style="margin:0 0 4px;font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;">Budget concerné</p>
+                    <p style="margin:0;font-size:16px;font-weight:600;color:#13353b;">Projet de formation couture</p>
+                  </td></tr>
+                </table>
+
+                <!-- Motif -->
+                <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#333;text-transform:uppercase;letter-spacing:0.5px;">Motif de la demande</p>
+                <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff8e1;border-radius:6px;border-left:4px solid #f59e0b;margin-bottom:32px;">
+                  <tr><td style="padding:16px 20px;">
+                    <p style="margin:0;font-size:14px;color:#555;line-height:1.6;">Le coût total dépasse le plafond autorisé de 32 797 850 FCFA. Veuillez revoir les lignes budgétaires concernant les équipements et réduire le montant global.</p>
+                  </td></tr>
+                </table>
+
+                <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+                  Vous pouvez dès maintenant apporter les corrections nécessaires et soumettre à nouveau votre budget.
+                </p>
+
+                <!-- Bouton -->
+                <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
+                  <tr><td align="center" style="background:#00b4c5;border-radius:6px;">
+                    <a href="#" style="display:inline-block;padding:14px 36px;color:#fff;font-size:15px;font-weight:600;text-decoration:none;letter-spacing:0.3px;">
+                      Accéder à mon budget →
+                    </a>
+                  </td></tr>
+                </table>
+
+                <p style="margin:0;font-size:13px;color:#888;">
+                  Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+                  <a href="#" style="color:#00b4c5;">http://localhost:8000/budgets/3e3e63a1-ff05-4780-920b-2cad76fda94e/</a>
+                </p>
+              </td></tr>
+
+              <!-- Pied de page -->
+              <tr><td style="background:#f8f9fa;padding:20px 40px;border-top:1px solid #e9ecef;">
+                <p style="margin:0;font-size:12px;color:#aaa;text-align:center;">
+                  Plateforme de Gestion Budgétaire &copy; 2026 — Cet email est envoyé automatiquement, merci de ne pas y répondre.
+                </p>
+              </td></tr>
+
+            </table>
+          </td></tr>
+        </table>
+      </div>
+      <!-- ===== FIN CONTENU EMAIL ===== -->
+    </div>
+  </div>
+
+</body>
+</html>

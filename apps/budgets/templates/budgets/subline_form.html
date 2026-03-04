@@ -28,11 +28,17 @@
     </td>
     <td class="text-muted text-center">-</td>
     <td class="text-center">
-        <button type="button" class="btn btn-outline-danger btn-sm"
-                onclick="this.closest('tr').remove()"
-                title="Annuler (Échap)">
-            <i class="bi bi-x-lg"></i>
-        </button>
+        <div class="d-flex gap-1 justify-content-center">
+            <button type="button" class="btn btn-success btn-sm btn-save-article"
+                    title="Enregistrer (Entrée)">
+                <i class="bi bi-check-lg"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    onclick="this.closest('tr').remove()"
+                    title="Annuler (Échap)">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
     </td>
 </tr>
 
@@ -44,6 +50,17 @@
 
     // Focus sur le premier champ
     inputs[0].focus();
+
+    // Bouton Enregistrer
+    row.querySelector('.btn-save-article').addEventListener('click', function() {
+        const designation = row.querySelector('[name="designation"]').value;
+        if (!designation.trim()) {
+            alert('La désignation est obligatoire');
+            inputs[0].focus();
+            return;
+        }
+        saveArticle();
+    });
 
     // Gérer la touche ENTRÉE sur tous les champs
     inputs.forEach((input, index) => {

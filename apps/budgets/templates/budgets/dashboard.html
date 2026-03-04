@@ -4,7 +4,7 @@
 {% block content %}
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Tableau de bord</h1>
             <p class="text-muted small mb-0">
@@ -56,10 +56,10 @@
     <div class="mb-4 mt-3">
         <form method="GET" action="">
             <div class="row g-2 align-items-end">
-                <div class="col-md">
+                <div class="col-12 col-md">
                     <input type="text" name="q" class="form-control" placeholder="Rechercher par titre, operateur..." value="{{ request.GET.q }}">
                 </div>
-                <div class="col-md">
+                <div class="col-12 col-md">
                     <select name="appel" class="form-select" title="Filtrer par appel a projet">
                         <option value="">Appel a projet</option>
                         {% for appel in tous_appels %}
@@ -67,7 +67,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md">
+                <div class="col-12 col-md">
                     <select name="filiere" class="form-select" title="Filtrer par filière">
                         <option value="">Filière</option>
                         {% for filiere in toutes_filieres %}
@@ -75,7 +75,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-auto d-flex gap-2">
+                <div class="col-12 col-md-auto d-flex gap-2">
                     <button type="submit" class="btn btn-xero" title="Filtrer">
                         <i class="bi bi-funnel"></i>
                     </button>

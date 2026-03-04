@@ -1,57 +1,147 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header text-white p-4 bg-warning">
-                    <h4 class="mb-0 text-dark">
-                        <i class="bi bi-pencil-square me-2"></i>Demander une modification
-                    </h4>
-                    <p class="mb-0 mt-2 text-dark opacity-75">{{ budget.titre_projet }}</p>
-                </div>
-                <div class="card-body p-4 p-md-5">
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        Indiquez à l'opérateur <strong>{{ budget.created_by.get_full_name|default:budget.created_by.username }}</strong>
-                        les modifications à apporter sur ce budget. Un email lui sera envoyé automatiquement.
-                    </div>
+<style>
+  .compose-wrapper {
+    max-width: 640px;
+    margin: 48px auto;
+    background: #fff;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    overflow: hidden;
+    font-family: 'Google Sans', Roboto, Arial, sans-serif;
+  }
+  .compose-header {
+    background: #404040;
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .compose-header-icons { display: flex; gap: 12px; opacity: 0.8; font-size: 16px; }
+  .compose-field {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: #202124;
+  }
+  .compose-field label { color: #5f6368; min-width: 40px; font-size: 14px; }
+  .compose-field input {
+    border: none; outline: none; flex: 1;
+    font-size: 14px; color: #202124; background: transparent;
+  }
+  .compose-body textarea {
+    width: 100%; border: none; outline: none;
+    padding: 12px 16px; font-size: 14px;
+    color: #202124; resize: none; min-height: 260px;
+    font-family: inherit; box-sizing: border-box;
+    line-height: 1.6;
+  }
+  .compose-footer {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid #e0e0e0;
+  }
+  .compose-send-btn {
+    background: #0b57d0;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 22px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .compose-send-btn:hover { background: #0842a0; }
+  .compose-cancel-btn {
+    color: #444; font-size: 13px; text-decoration: none;
+    background: none; border: none; cursor: pointer;
+    padding: 6px 10px; border-radius: 4px;
+  }
+  .compose-cancel-btn:hover { background: #f1f3f4; }
+  .error-msg { color: #d93025; font-size: 12px; padding: 4px 16px 0; display: none; }
+</style>
 
-                    <div class="mb-3">
-                        <small class="text-muted">
-                            <i class="bi bi-building me-1"></i>Opérateur : <strong>{{ budget.operateur }}</strong>
-                        </small>
-                        <br>
-                        <small class="text-muted">
-                            <i class="bi bi-envelope me-1"></i>Email : <strong>{{ budget.created_by.email|default:"Non renseigné" }}</strong>
-                        </small>
-                    </div>
+<div class="container">
+  <form method="post" id="form-modification">
+    {% csrf_token %}
 
-                    <form method="post">
-                        {% csrf_token %}
+    <div class="compose-wrapper">
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold">
-                                <i class="bi bi-chat-left-text me-1"></i>Motif de la demande de modification <span class="text-danger">*</span>
-                            </label>
-                            <textarea name="motif" class="form-control" rows="5" required
-                                      placeholder="Décrivez les corrections ou modifications que l'opérateur doit apporter..."></textarea>
-                            <div class="form-text">Ce message sera envoyé par email à l'opérateur.</div>
-                        </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-5 pt-4 border-top">
-                            <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-outline-secondary px-4">
-                                <i class="bi bi-x-circle me-1"></i>Annuler
-                            </a>
-                            <button type="submit" class="btn btn-warning px-4 btn-lg">
-                                <i class="bi bi-send me-1"></i>Envoyer la demande
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+      {# Barre de titre #}
+      <div class="compose-header">
+        <span>Nouveau message</span>
+        <div class="compose-header-icons">
+          <a href="{% url 'budgets:budget_detail' budget.uuid %}" title="Fermer" aria-label="Fermer" style="color:#fff; text-decoration:none;">
+            <i class="bi bi-x-lg"></i>
+          </a>
         </div>
+      </div>
+
+      {# Champ À #}
+      <div class="compose-field">
+        <label>À</label>
+        <input type="text" title="Destinataire" aria-label="Destinataire" value="{{ budget.created_by.email|default:'' }}" readonly>
+      </div>
+
+      {# Champ Objet #}
+      <div class="compose-field">
+        <label>Objet</label>
+        <input type="text" id="objet-field" title="Objet" aria-label="Objet" value="Demande de modification – {{ budget.titre_projet|escapejs }}">
+      </div>
+
+      {# Corps du message #}
+      <div class="compose-body">
+        <textarea id="motif-textarea" name="motif" title="Corps du message" aria-label="Corps du message">Bonjour {{ budget.created_by.get_full_name|default:budget.created_by.username }},
+
+L'administrateur vous demande de modifier votre budget « {{ budget.titre_projet }} ».
+
+Motif de la demande :
+[Précisez ici les modifications attendues]
+
+Veuillez apporter les corrections nécessaires et soumettre à nouveau votre budget.
+
+Cordialement,
+Benkadibaara</textarea>
+      </div>
+      {# Aperçu du bouton qui sera dans l'email #}
+      <div style="padding: 0 16px 16px;">
+        <a href="{% url 'budgets:budget_detail' budget.uuid %}" target="_blank"
+           style="display:inline-block;background:#0b57d0;color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;font-weight:500;text-decoration:none;">
+          Accéder à mon budget
+        </a>
+        <span style="font-size:11px;color:#888;margin-left:10px;">← ce bouton sera inclus dans l'email</span>
+      </div>
+
+      <div class="error-msg" id="error-msg">Le message ne peut pas être vide.</div>
+
+      {# Pied — boutons #}
+      <div class="compose-footer">
+        <button type="submit" class="compose-send-btn">
+          Envoyer
+        </button>
+        <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="compose-cancel-btn">Annuler</a>
+      </div>
+
     </div>
+  </form>
 </div>
+
+<script>
+document.getElementById('form-modification').addEventListener('submit', function(e) {
+    const textarea = document.getElementById('motif-textarea');
+    if (!textarea.value.trim()) {
+        e.preventDefault();
+        document.getElementById('error-msg').style.display = 'block';
+        textarea.focus();
+    }
+});
+</script>
 {% endblock %}

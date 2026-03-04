@@ -69,6 +69,16 @@ RUN dos2unix /docker-entrypoint.sh 2>/dev/null || sed -i 's/\r$//' /docker-entry
 # Copie du reste du code
 COPY . .
 
+# Copier les templates dans un emplacement accessible (pour production)
+# Les templates seront copiés dans media_volume au démarrage via docker-entrypoint.sh
+RUN mkdir -p /app/templates_source && \
+    if [ -d "/app/media/templates" ]; then \
+        cp -r /app/media/templates/* /app/templates_source/ 2>/dev/null || true; \
+        echo "✅ Templates copiés dans /app/templates_source"; \
+    else \
+        echo "⚠️  Dossier media/templates non trouvé (sera géré au démarrage)"; \
+    fi
+
 # S'assurer que le fichier d'entrée est toujours présent et exécutable après COPY . .
 # et que bash est disponible
 RUN test -f /docker-entrypoint.sh && \

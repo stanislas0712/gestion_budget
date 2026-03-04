@@ -32,6 +32,9 @@ urlpatterns = [
     path('profil/', views.profil, name='profil'),
     path('profil/changer-mot-de-passe/', views.changer_mot_de_passe, name='changer_mot_de_passe'),
 
+    # Prévisualisation emails (admin uniquement)
+    path('preview-email/modification/', views.preview_email_modification, name='preview_email_modification'),
+
     # Workflow de validation
     path('<uuid:uuid>/soumettre/', views.soumettre_budget, name='soumettre_budget'),
     path('<uuid:uuid>/demander-modification/', views.demander_modification, name='demander_modification'),

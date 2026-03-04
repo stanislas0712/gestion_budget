@@ -1,4 +1,6 @@
 import threading
+from pathlib import Path
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, FileResponse
 from django.db.models import Q
@@ -11,20 +13,22 @@ from .models import InfosBudget, GroupeArticle, SousLigneArticle, SectionBudgeta
 from .forms import SousLigneArticleForm, InfosBudgetForm, InfosBudgetCreationForm, InscriptionOperateurForm
 
 
-def _envoyer_email_async(subject, message, recipient_list):
+def _envoyer_email_async(subject, message, recipient_list, html_message=None):
     """Envoie un email dans un thread séparé pour ne pas bloquer la requête."""
-    from django.core.mail import send_mail
+    from django.core.mail import EmailMultiAlternatives
     from django.conf import settings
 
     def _send():
         try:
-            send_mail(
+            email = EmailMultiAlternatives(
                 subject=subject,
-                message=message,
+                body=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=recipient_list,
-                fail_silently=True,
+                to=recipient_list,
             )
+            if html_message:
+                email.attach_alternative(html_message, "text/html")
+            email.send(fail_silently=False)
         except Exception as e:
             print(f"Erreur envoi email: {e}")
 
@@ -1068,36 +1072,52 @@ def demander_modification(request, uuid):
             messages.error(request, "Veuillez indiquer le motif de la demande de modification.")
             return render(request, 'budgets/demander_modification.html', {'budget': budget})
 
-        # Passer directement en modification autorisée
+        # Envoyer l'email D'ABORD — changer le statut seulement si l'envoi réussit
+        if not (budget.created_by and budget.created_by.email):
+            messages.error(request, "Impossible d'envoyer : l'opérateur n'a pas d'adresse email.")
+            return render(request, 'budgets/demander_modification.html', {'budget': budget})
+
+        subject = f'Demande de modification – {budget.titre_projet}'
+        try:
+            from django.core.mail import EmailMultiAlternatives
+            budget_url = request.build_absolute_uri(f'/budgets/{budget.uuid}/')
+            # Corps texte (fallback)
+            message_txt = motif + f"\n\nAccédez à votre budget ici : {budget_url}"
+            # Corps HTML avec bouton
+            corps_html = motif.replace('\n', '<br>')
+            html_message = f"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;font-size:14px;color:#333;line-height:1.6;padding:24px;">
+  <p>{corps_html}</p>
+  <br>
+  <table cellpadding="0" cellspacing="0">
+    <tr><td style="background:#0b57d0;border-radius:20px;">
+      <a href="{budget_url}" style="display:inline-block;padding:10px 24px;color:#fff;font-size:14px;font-weight:500;text-decoration:none;">
+        Accéder à mon budget
+      </a>
+    </td></tr>
+  </table>
+</body></html>"""
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=message_txt,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[budget.created_by.email],
+            )
+            email.attach_alternative(html_message, 'text/html')
+            email.send(fail_silently=False)
+        except Exception as e:
+            messages.error(request, f"Échec de l'envoi de l'email : {e}. Le statut du budget n'a pas été modifié.")
+            return render(request, 'budgets/demander_modification.html', {'budget': budget})
+
+        # Email envoyé avec succès → on change le statut
         budget.statut = InfosBudget.STATUT_MODIFICATION_AUTORISEE
         budget.motif_demande_modification = motif
         budget.date_demande_modification = timezone.now()
         budget.date_autorisation_modification = timezone.now()
         budget.save()
 
-        # Envoyer un email à l'opérateur (en arrière-plan)
-        budget_url = request.build_absolute_uri(f'/budgets/{budget.uuid}/')
-        if budget.created_by and budget.created_by.email:
-            _envoyer_email_async(
-                subject=f'[MODIFICATION DEMANDÉE] {budget.titre_projet}',
-                message=f"""Bonjour {budget.created_by.get_full_name() or budget.created_by.username},
-
-L'administrateur vous demande de modifier votre budget "{budget.titre_projet}".
-
-Motif de la demande :
-{motif}
-
-Vous pouvez maintenant modifier votre budget et le soumettre à nouveau.
-
-Cliquez ici pour accéder à votre budget :
-{budget_url}
-
-Cordialement,
-Système de Gestion de Budget""",
-                recipient_list=[budget.created_by.email],
-            )
-
-        messages.success(request, "La demande de modification a été envoyée à l'opérateur par email. Le budget est maintenant modifiable.")
+        messages.success(request, "Email envoyé à l'opérateur. Le budget est maintenant modifiable.")
         return redirect('budgets:budget_detail', uuid=uuid)
 
     return render(request, 'budgets/demander_modification.html', {'budget': budget})
@@ -1179,8 +1199,17 @@ Système de Gestion de Budget""",
     return redirect('budgets:budget_detail', uuid=uuid)
 
 @login_required
+def preview_email_modification(request):
+    """Prévisualisation de l'email de demande de modification (admin uniquement)"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('budgets:dashboard')
+    return render(request, 'budgets/email_preview_modification.html')
+
+
+@login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
+<<<<<<< HEAD
     import logging
     import os
     from django.conf import settings
@@ -1190,6 +1219,8 @@ def telecharger_template(request, format):
     
     # Définir les chemins des templates
     templates_dir = Path(settings.MEDIA_ROOT) / 'templates'
+=======
+>>>>>>> developpement
     
     # Mapping des formats vers les fichiers
     fichiers = {
@@ -1203,6 +1234,7 @@ def telecharger_template(request, format):
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
+<<<<<<< HEAD
     fichier_path = templates_dir / fichiers[format]
     
     # Logging détaillé pour le diagnostic
@@ -1263,10 +1295,61 @@ def telecharger_template(request, format):
         response = FileResponse(
             fichier,
             content_type=content_types.get(format, 'application/octet-stream'),
+=======
+    # Chercher le fichier dans plusieurs emplacements possibles (pour Docker et développement)
+    emplacements_possibles = [
+        Path(settings.MEDIA_ROOT) / 'templates',  # Emplacement standard
+        Path(settings.BASE_DIR) / 'media' / 'templates',  # Alternative
+        Path(settings.MEDIA_ROOT),  # Directement dans media
+    ]
+    
+    fichier_trouve = None
+    for emplacement in emplacements_possibles:
+        chemin_test = emplacement / fichiers[format]
+        if chemin_test.exists() and chemin_test.is_file():
+            fichier_trouve = chemin_test
+            break
+    
+    # Debug - toujours afficher en cas de problème
+    if settings.DEBUG or not fichier_trouve:
+        print(f"[DEBUG] Recherche du template {format}")
+        print(f"[DEBUG] MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        print(f"[DEBUG] BASE_DIR: {settings.BASE_DIR}")
+        for emplacement in emplacements_possibles:
+            chemin_test = emplacement / fichiers[format]
+            print(f"[DEBUG] Testé: {chemin_test} -> Existe: {chemin_test.exists()}")
+    
+    # Vérifier si le fichier existe
+    if not fichier_trouve:
+        messages.warning(
+            request, 
+            f"Le template {format.upper()} n'est pas encore disponible. "
+            f"Veuillez contacter l'administrateur."
+        )
+        return redirect('budgets:dashboard')
+    
+    fichier_path = fichier_trouve
+    
+    # Définir le type de contenu selon le format
+    content_types = {
+        'excel': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'pdf': 'application/pdf',
+        'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    }
+    
+    try:
+        # FileResponse peut accepter un chemin directement et gère l'ouverture/fermeture automatiquement
+        # Ou on peut ouvrir le fichier manuellement (FileResponse le fermera automatiquement)
+        file_handle = open(fichier_path, 'rb')
+        response = FileResponse(
+            file_handle,
+            content_type=content_types[format],
+>>>>>>> developpement
             as_attachment=True,
             filename=fichiers[format]
         )
         
+<<<<<<< HEAD
         # Ajouter le Content-Length pour un meilleur support navigateur
         if file_size:
             response['Content-Length'] = str(file_size)
@@ -1289,4 +1372,18 @@ def telecharger_template(request, format):
     except Exception as e:
         logger.exception(f"❌ Erreur inattendue lors du téléchargement du fichier {fichier_path}: {str(e)}")
         messages.error(request, f"Erreur lors du téléchargement du fichier: {str(e)}")
+=======
+        # Headers supplémentaires pour forcer le téléchargement
+        # Note: Content-Disposition est déjà défini par as_attachment=True
+        response['X-Content-Type-Options'] = 'nosniff'
+        
+        # FileResponse fermera automatiquement le fichier quand la réponse est terminée
+        return response
+            
+    except Exception as e:
+        messages.error(request, f"Erreur lors du téléchargement: {str(e)}")
+        if settings.DEBUG:
+            import traceback
+            print(f"[DEBUG] Erreur complète: {traceback.format_exc()}")
+>>>>>>> developpement
         return redirect('budgets:dashboard')
