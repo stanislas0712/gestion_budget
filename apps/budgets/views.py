@@ -1,7 +1,8 @@
 import threading
+from pathlib import Path
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -1208,11 +1209,6 @@ def preview_email_modification(request):
 @login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
-    import os
-    from django.conf import settings
-    
-    # Définir les chemins des templates
-    templates_dir = os.path.join(settings.MEDIA_ROOT, 'templates')
     
     # Mapping des formats vers les fichiers
     fichiers = {
@@ -1225,16 +1221,39 @@ def telecharger_template(request, format):
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
-    fichier_path = os.path.join(templates_dir, fichiers[format])
+    # Chercher le fichier dans plusieurs emplacements possibles (pour Docker et développement)
+    emplacements_possibles = [
+        Path(settings.MEDIA_ROOT) / 'templates',  # Emplacement standard
+        Path(settings.BASE_DIR) / 'media' / 'templates',  # Alternative
+        Path(settings.MEDIA_ROOT),  # Directement dans media
+    ]
+    
+    fichier_trouve = None
+    for emplacement in emplacements_possibles:
+        chemin_test = emplacement / fichiers[format]
+        if chemin_test.exists() and chemin_test.is_file():
+            fichier_trouve = chemin_test
+            break
+    
+    # Debug - toujours afficher en cas de problème
+    if settings.DEBUG or not fichier_trouve:
+        print(f"[DEBUG] Recherche du template {format}")
+        print(f"[DEBUG] MEDIA_ROOT: {settings.MEDIA_ROOT}")
+        print(f"[DEBUG] BASE_DIR: {settings.BASE_DIR}")
+        for emplacement in emplacements_possibles:
+            chemin_test = emplacement / fichiers[format]
+            print(f"[DEBUG] Testé: {chemin_test} -> Existe: {chemin_test.exists()}")
     
     # Vérifier si le fichier existe
-    if not os.path.exists(fichier_path):
-        messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
+    if not fichier_trouve:
+        messages.warning(
+            request, 
+            f"Le template {format.upper()} n'est pas encore disponible. "
+            f"Veuillez contacter l'administrateur."
+        )
         return redirect('budgets:dashboard')
     
-    # Préparer la réponse de téléchargement
-    with open(fichier_path, 'rb') as f:
-        response = HttpResponse(f.read())
+    fichier_path = fichier_trouve
     
     # Définir le type de contenu selon le format
     content_types = {
@@ -1243,7 +1262,27 @@ def telecharger_template(request, format):
         'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     }
     
-    response['Content-Type'] = content_types[format]
-    response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
-    
-    return response
+    try:
+        # FileResponse peut accepter un chemin directement et gère l'ouverture/fermeture automatiquement
+        # Ou on peut ouvrir le fichier manuellement (FileResponse le fermera automatiquement)
+        file_handle = open(fichier_path, 'rb')
+        response = FileResponse(
+            file_handle,
+            content_type=content_types[format],
+            as_attachment=True,
+            filename=fichiers[format]
+        )
+        
+        # Headers supplémentaires pour forcer le téléchargement
+        # Note: Content-Disposition est déjà défini par as_attachment=True
+        response['X-Content-Type-Options'] = 'nosniff'
+        
+        # FileResponse fermera automatiquement le fichier quand la réponse est terminée
+        return response
+            
+    except Exception as e:
+        messages.error(request, f"Erreur lors du téléchargement: {str(e)}")
+        if settings.DEBUG:
+            import traceback
+            print(f"[DEBUG] Erreur complète: {traceback.format_exc()}")
+        return redirect('budgets:dashboard')
