@@ -1,0 +1,22 @@
+{% load humanize %}
+<tr class="article-row">
+    <td class="ps-5"></td>
+    <td>{{ article.designation }}</td>
+    <td class="text-center">{{ article.unite }}</td>
+    <td class="text-end">{{ article.quantite|floatformat:2 }}</td>
+    <td class="text-end">{{ article.prix_unitaire|floatformat:0|intcomma }}</td>
+    <td class="text-end fw-semibold">{{ article.cout_total_article|floatformat:0|intcomma }}</td>
+    <td class="text-end">{{ article.co_financement|floatformat:0|intcomma }}</td>
+    <td class="text-end text-success fw-semibold">{{ article.budget_demande_article|floatformat:0|intcomma }}</td>
+    <td class="text-center">
+        {% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
+        <button class="btn btn-sm btn-outline-danger"
+                hx-delete="{% url 'budgets:supprimer_article' article.id %}"
+                hx-target="closest tr"
+                hx-confirm="Supprimer cet article ?"
+                title="Supprimer">
+            <i class="bi bi-trash"></i>
+        </button>
+        {% endif %}
+    </td>
+</tr>

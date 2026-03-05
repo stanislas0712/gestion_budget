@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmer la suppression
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <strong>Attention !</strong> Cette action est irréversible.
+                    </div>
+
+                    <p class="lead">Êtes-vous sûr de vouloir supprimer ce budget ?</p>
+
+                    <div class="mb-4 p-3 bg-light border rounded">
+                        <h5 class="text-primary mb-2">
+                            <i class="bi bi-file-earmark-text me-2"></i>{{ budget.titre_projet }}
+                        </h5>
+                        <p class="mb-1">
+                            <strong>Opérateur :</strong> {{ budget.operateur }}
+                        </p>
+                        <p class="mb-1">
+                            <strong>Filière :</strong> {{ budget.filiere }}
+                        </p>
+                        <p class="mb-0">
+                            <strong>Coût total :</strong> {{ budget.cout_total_global|floatformat:0 }} FCFA
+                        </p>
+                    </div>
+
+                    <div class="alert alert-danger mb-3">
+                        <i class="bi bi-trash-fill me-2"></i>
+                        Toutes les données associées (sections, lignes, groupes, articles) seront également supprimées.
+                    </div>
+
+                    <form method="post" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-secondary flex-grow-1">
+                            <i class="bi bi-arrow-left me-1"></i>Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger flex-grow-1">
+                            <i class="bi bi-trash-fill me-1"></i>Supprimer définitivement
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

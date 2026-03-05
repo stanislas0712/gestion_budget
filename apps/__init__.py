@@ -1,0 +1,2 @@
+"""Apps package (bounded contexts)."""
+

@@ -1,0 +1,33 @@
+{% load humanize %}
+{% load budget_filters %}
+{# Synthèse finale du budget avec tous les calculs #}
+
+{# Ligne SYNTHESE #}
+<tr class="table-primary">
+    <td colspan="9" class="fw-bold text-center fs-5">
+        <i class="bi bi-clipboard-data me-2"></i>SYNTHESE
+    </td>
+</tr>
+
+{# COUT TOTAL/BUDGET (A+B) #}
+<tr class="table-info">
+    <td colspan="5" class="fw-bold">COUT TOTAL/BUDGET (A+B)</td>
+    <td class="fw-bold text-end bg-light">{{ budget.cout_total_global|floatformat:0|intcomma }}</td>
+    <td class="fw-bold text-end bg-light">{{ budget.co_financement_global|floatformat:0|intcomma }}</td>
+    <td class="fw-bold text-end bg-light">{{ budget.budget_demande_global|floatformat:0|intcomma }}</td>
+    <td></td>
+</tr>
+
+{# COUT UNITAIRE TOTAL /APPRENANT (FCFA) #}
+<tr class="table-warning">
+    <td colspan="5" class="fw-bold text-center">COUT UNITAIRE TOTAL /APPRENANT (FCFA)</td>
+    <td class="text-end fw-bold">{{ budget.cout_par_apprenant|floatformat:0|intcomma }}</td>
+    <td class="text-end fw-bold">
+        {{ budget.co_financement_global|divide:budget.total_apprenants|floatformat:0|intcomma }}
+    </td>
+    <td class="text-end fw-bold">
+        {{ budget.budget_demande_global|divide:budget.total_apprenants|floatformat:0|intcomma }}
+    </td>
+    <td></td>
+</tr>
+

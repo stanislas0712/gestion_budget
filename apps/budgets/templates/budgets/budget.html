@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="h4 fw-bold mb-2">{{ budget.titre_projet }}</h2>
+            <div class="d-flex align-items-center gap-2">
+                {% if budget.statut == 'brouillon' %}
+                    <span class="badge bg-secondary badge-statut">Brouillon</span>
+                {% elif budget.statut == 'soumis' %}
+                    <span class="badge bg-dark badge-statut">Soumis</span>
+                {% elif budget.statut == 'modification_autorisee' %}
+                    <span class="badge bg-warning text-dark badge-statut">Modification demandee</span>
+                {% elif budget.statut == 'approuve' %}
+                    <span class="badge bg-success badge-statut">Approuve</span>
+                {% elif budget.statut == 'rejete' %}
+                    <span class="badge bg-danger badge-statut">Rejete</span>
+                {% endif %}
+                {% if budget.filiere %}
+                    <span class="text-muted small">{{ budget.filiere }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% if user.is_staff or user.is_superuser %}
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-xero-outline btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i>Exporter
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item" href="{% url 'budgets:export_excel' budget.uuid %}">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Excel (.xlsx)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{% url 'budgets:export_pdf' budget.uuid %}">
+                        <i class="bi bi-file-earmark-pdf me-2"></i>PDF (.pdf)
+                    </a>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    {% include 'budgets/synthese_header.html' %}
+
+    {# Avertissements - operateurs uniquement #}
+    {% if not user.is_staff and not user.is_superuser %}
+    <div class="alert alert-danger mb-4 py-3 px-4">
+        <div class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Avertissements</div>
+        <ol class="mb-0 ps-3 small">
+            <li class="mb-1">Veuillez noter que le budget ne prend pas en considération les achats d'équipements ou de matériels pédagogiques. Ces éléments ne sont pas éligibles.</li>
+            <li class="mb-1">Veuillez noter que le coût d'achat de la matière d'œuvre demandé ne doit pas être supérieur à <strong>30%</strong> du budget global.</li>
+            <li>Veuillez noter que le coût total de votre projet de formation-insertion ne devra pas excéder <strong>32 797 850 FCFA</strong>, soit <strong>50 000 euros</strong>.</li>
+        </ol>
+    </div>
+    {% endif %}
+
+    {# Alerte A1 > 30% #}
+    <div id="alerte-a1" class="alert alert-danger mb-4 d-none">
+        <strong>ATTENTION :</strong> A.1 (Matieres d'oeuvre) represente
+        <span id="a1-pourcentage-value">0</span>% du budget demande.
+        <strong>Le maximum autorise est de 30%.</strong>
+    </div>
+
+    {% if not budget.appel_est_actif and budget.statut != 'modification_autorisee' %}
+    <div class="alert alert-light border mb-4 py-2">
+        <i class="bi bi-lock me-2 text-muted"></i>
+        La periode de l'appel a projet est terminee. Ce budget ne peut plus etre modifie.
+        {% if budget.appel_a_projet %}
+            <br><small class="text-muted">{{ budget.appel_a_projet.nom }} &mdash; Fin : {{ budget.appel_a_projet.date_fin|date:"d/m/Y H:i" }}</small>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if not budget.peut_etre_modifie and budget.appel_est_actif %}
+    <div class="alert alert-light border mb-4 py-2">
+        <i class="bi bi-lock me-2 text-muted"></i>
+        Ce budget ne peut plus etre modifie (statut : <strong>{{ budget.get_statut_display }}</strong>).
+    </div>
+    {% endif %}
+
+    {% if budget.statut == 'modification_autorisee' %}
+    <div class="alert alert-light border-start border-warning border-3 mb-4">
+        <strong>Modification demandee par l'administrateur</strong>
+        {% if budget.motif_demande_modification %}
+        <div class="mt-2 bg-white p-3 rounded border small">
+            <strong>Motif :</strong>
+            <p class="mb-0 mt-1">{{ budget.motif_demande_modification }}</p>
+        </div>
+        {% endif %}
+        <p class="mb-0 mt-2 small text-muted">Effectuez les modifications demandees puis soumettez a nouveau.</p>
+    </div>
+    {% endif %}
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+            <h6 class="mb-0 fw-semibold text-uppercase small text-muted">Informations du projet</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <small class="text-muted d-block">Operateur</small>
+                    <strong>{{ budget.operateur }}</strong>
+                </div>
+                <div class="col-md-4">
+                    <small class="text-muted d-block">Apprenants</small>
+                    <strong>{{ budget.total_apprenants }}</strong>
+                </div>
+                {% if budget.appel_a_projet %}
+                <div class="col-md-4">
+                    <small class="text-muted d-block">Appel a projet</small>
+                    <strong>{{ budget.appel_a_projet.nom }}</strong>
+                </div>
+                {% endif %}
+                {% if budget.filiere %}
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Filiere</small>
+                    <strong>{{ budget.filiere }}</strong>
+                </div>
+                {% endif %}
+                {% if budget.metier %}
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Metier</small>
+                    <strong>{{ budget.metier }}</strong>
+                </div>
+                {% endif %}
+                {% if budget.localite %}
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Localite</small>
+                    <strong>{{ budget.localite }}</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-4">
+        {% include 'budgets/budget_table.html' %}
+    </div>
+</div>
+
+{# ===== MODAL: Modifier le budget (operateur) ===== #}
+{% if modifier_form %}
+<div class="modal fade" id="modalModifierBudget" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'budgets:modifier_budget' budget.uuid %}" novalidate>
+                {% csrf_token %}
+                <div class="modal-header" style="background: var(--xero-nav);">
+                    <h5 class="modal-title text-white"><i class="bi bi-pencil-square me-2"></i>Modifier le budget</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if modifier_form.errors %}
+                    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>Veuillez verifier les champs ci-dessous.</div>
+                    {% endif %}
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
+                            {{ modifier_form.titre_projet }}
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
+                            {{ modifier_form.total_apprenants }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-xero">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ===== MODAL: Soumettre le budget (operateur) ===== #}
+{% if budget.peut_etre_modifie and not user.is_staff and not user.is_superuser %}
+<div class="modal fade" id="modalSoumettre" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--xero-nav);">
+                <h5 class="modal-title text-white"><i class="bi bi-send me-2"></i>Soumettre le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalSoumettreBody">
+                <p class="mb-0">Verification en cours...</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:soumettre_budget' budget.uuid %}" class="btn btn-xero" id="btnConfirmSoumettre">
+                    <i class="bi bi-send me-1"></i>Soumettre
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ===== MODALS ADMIN: Approuver / Demander modification / Rejeter ===== #}
+{% if user.is_staff or user.is_superuser %}
+{% if budget.statut == 'soumis' %}
+
+{# Modal Approuver #}
+<div class="modal fade" id="modalApprouver" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Valider le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirmez-vous la validation du budget <strong>{{ budget.titre_projet }}</strong> ?</p>
+                <p class="text-muted small mb-0">Un email de notification sera envoye a l'operateur.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:approuver_budget' budget.uuid %}" class="btn btn-success">
+                    <i class="bi bi-check-circle-fill me-1"></i>Confirmer la validation
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# (modal demander modification supprimée - action directe via mailto:) #}
+
+{# Modal Rejeter #}
+<div class="modal fade" id="modalRejeter" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-x-circle-fill me-2"></i>Rejeter le budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirmez-vous le rejet du budget <strong>{{ budget.titre_projet }}</strong> ?</p>
+                <p class="text-muted small mb-0">Un email de notification sera envoye a l'operateur.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-xero-outline" data-bs-dismiss="modal">Annuler</button>
+                <a href="{% url 'budgets:rejeter_budget' budget.uuid %}" class="btn btn-danger">
+                    <i class="bi bi-x-circle-fill me-1"></i>Confirmer le rejet
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const statutActuel = '{{ budget.statut }}';
+    const budgetUuid = '{{ budget.uuid }}';
+    function verifierStatut() {
+        fetch(`/budgets/get-statut/${budgetUuid}/`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.statut !== statutActuel) location.reload();
+            })
+            .catch(() => {});
+    }
+    setInterval(verifierStatut, 5000);
+})();
+{% if show_modifier_modal %}
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('modalModifierBudget')).show();
+});
+{% endif %}
+
+</script>
+{% endblock %}

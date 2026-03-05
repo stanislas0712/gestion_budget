@@ -1,0 +1,213 @@
+<< 'ENDOFFILE'
+{% extends 'base/base.html' %}
+
+{% block title %}Opérateurs - Budget Platform{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-8">
+        <h1><i class="bi bi-building"></i> Opérateurs</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'operators:create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouvel opérateur
+        </a>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ stats.total }}</h3>
+                <p class="text-muted mb-0">Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ stats.verified }}</h3>
+                <p class="text-muted mb-0">Vérifiés ({{ stats.verification_rate|floatformat:0 }}%)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ stats.synced_to_odoo }}</h3>
+                <p class="text-muted mb-0">Sync Odoo ({{ stats.odoo_sync_rate|floatformat:0 }}%)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>{{ stats.by_status.active|default:0 }}</h3>
+                <p class="text-muted mb-0">Actifs</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-2">
+                <label for="status_select" class="form-label">Statut</label>
+                <select id="status_select" name="status" class="form-select">
+                    <option value="">Tous</option>
+                    {% for value, label in statuses %}
+                    <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="type_select" class="form-label">Type</label>
+                <select id="type_select" name="type" class="form-select">
+                    <option value="">Tous</option>
+                    {% for value, label in types %}
+                    <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="is_verified_select" class="form-label">Vérifié</label>
+                <select id="is_verified_select" name="is_verified" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="true" {% if current_is_verified == 'true' %}selected{% endif %}>Oui</option>
+                    <option value="false" {% if current_is_verified == 'false' %}selected{% endif %}>Non</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="odoo_synced_select" class="form-label">Sync Odoo</label>
+                <select id="odoo_synced_select" name="odoo_synced" class="form-select">
+                    <option value="">Tous</option>
+                    <option value="true" {% if current_odoo_synced == 'true' %}selected{% endif %}>Oui</option>
+                    <option value="false" {% if current_odoo_synced == 'false' %}selected{% endif %}>Non</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Recherche</label>
+                <input type="text" name="search" class="form-control" value="{{ current_search }}" placeholder="Nom, email, ville...">
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">Filtrer</button>
+                <a href="{% url 'operators:list' %}" class="btn btn-secondary">Réinitialiser</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Operators Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Type</th>
+                        <th>Ville / Pays</th>
+                        <th>Email</th>
+                        <th>Statut</th>
+                        <th>Vérifié</th>
+                        <th>Odoo</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for operator in operators %}
+                    <tr>
+                        <td>
+                            <strong>{{ operator.name }}</strong>
+                            {% if operator.acronym %}
+                            <br><small class="text-muted">({{ operator.acronym }})</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if operator.type == 'ngo' %}
+                            <span class="badge bg-primary">{{ operator.get_type_display }}</span>
+                            {% elif operator.type == 'association' %}
+                            <span class="badge bg-info">{{ operator.get_type_display }}</span>
+                            {% elif operator.type == 'cooperative' %}
+                            <span class="badge bg-success">{{ operator.get_type_display }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ operator.get_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ operator.city|default:"-" }}<br>
+                            <small class="text-muted">{{ operator.country|default:"-" }}</small>
+                        </td>
+                        <td>{{ operator.email|default:"-" }}</td>
+                        <td>
+                            {% if operator.status == 'active' %}
+                            <span class="badge bg-success">{{ operator.get_status_display }}</span>
+                            {% elif operator.status == 'suspended' %}
+                            <span class="badge bg-danger">{{ operator.get_status_display }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ operator.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if operator.is_verified %}
+                            <span class="badge bg-success">✓</span>
+                            {% else %}
+                            <span class="badge bg-warning">✗</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if operator.odoo_partner_id %}
+                            <span class="badge bg-success" title="Partner ID: {{ operator.odoo_partner_id }}">✓</span>
+                            {% else %}
+                            <span class="badge bg-secondary">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'operators:detail' operator.pk %}" class="btn btn-sm btn-outline-primary">
+                                Détails
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">Aucun opérateur trouvé</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}">Précédent</a>
+        </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}">Suivant</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+ENDOFFILE

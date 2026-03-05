@@ -1,0 +1,32 @@
+{% load humanize %}
+{% load budget_filters %}
+{# Sous-total pour une section avec calculs spécifiques #}
+<tr class="table-warning">
+    <td colspan="5" class="fw-bold">
+        Sous total {{ section.code }}
+    </td>
+    <td class="fw-bold text-end bg-light">{{ section.cout_total_section|floatformat:0|intcomma }}</td>
+    <td class="fw-bold text-end bg-light">{{ section.co_financement_section|floatformat:0|intcomma }}</td>
+    <td class="fw-bold text-end bg-light">{{ section.budget_demande_section|floatformat:0|intcomma }}</td>
+    <td></td>
+</tr>
+<tr style="background-color: #d4edda;">
+    <td colspan="5" class="text-center fw-semibold">Effectif total apprenant</td>
+    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
+    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
+    <td class="text-end fw-bold">{{ budget.total_apprenants }}</td>
+    <td></td>
+</tr>
+<tr style="background-color: #d4edda;">
+    <td colspan="5" class="text-center fw-semibold">Coût unitaire par apprenant (FCFA)</td>
+    <td class="text-end fw-bold">
+        {{ section.cout_total_section|divide:budget.total_apprenants|floatformat:0|intcomma }}
+    </td>
+    <td class="text-end fw-bold">
+        {{ section.co_financement_section|divide:budget.total_apprenants|floatformat:0|intcomma }}
+    </td>
+    <td class="text-end fw-bold">
+        {{ section.budget_demande_section|divide:budget.total_apprenants|floatformat:0|intcomma }}
+    </td>
+    <td></td>
+</tr>

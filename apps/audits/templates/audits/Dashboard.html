@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Acceuil Audits - Budget Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-shield-check"></i> Acceuil Audits et Traçabilité
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Dernières 24h</h5>
+                <h2>{{ stats_24h.total }}</h2>
+                <p class="mb-0">
+                    <span class="badge bg-success">{{ stats_24h.success }}</span>
+                    <span class="badge bg-danger">{{ stats_24h.failed }}</span>
+                    <span class="badge bg-warning">{{ stats_24h.pending }}</span>
+                </p>
+                <small>Taux de succès: {{ stats_24h.success_rate|floatformat:1 }}%</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Derniers 7 jours</h5>
+                <h2>{{ stats_7d.total }}</h2>
+                <p class="mb-0">
+                    <span class="badge bg-success">{{ stats_7d.success }}</span>
+                    <span class="badge bg-danger">{{ stats_7d.failed }}</span>
+                    <span class="badge bg-warning">{{ stats_7d.pending }}</span>
+                </p>
+                <small>Taux de succès: {{ stats_7d.success_rate|floatformat:1 }}%</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary">
+            <div class="card-body">
+                <h5 class="card-title">Derniers 30 jours</h5>
+                <h2>{{ stats_30d.total }}</h2>
+                <p class="mb-0">
+                    <span class="badge bg-success">{{ stats_30d.success }}</span>
+                    <span class="badge bg-danger">{{ stats_30d.failed }}</span>
+                    <span class="badge bg-warning">{{ stats_30d.pending }}</span>
+                </p>
+                <small>Taux de succès: {{ stats_30d.success_rate|floatformat:1 }}%</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Failed Events (Need Attention) -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Événements en échec</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if failed_events %}
+                <div class="list-group list-group-flush">
+                    {% for event in failed_events %}
+                    <a href="{% url 'audits:event_detail' event.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ event.get_system_display }}</h6>
+                        </div>
+                        <p class="mb-1 small">{{ event.error_message|truncatewords:15 }}</p>
+                        <small class="text-muted">{{ event.created_at|timesince }} ago</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center text-muted p-3">Aucun événement en échec</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'audits:event_list' %}?status=failed" class="btn btn-sm btn-outline-danger">
+                    Voir tous les échecs
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Events -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Événements récents</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_events %}
+                <div class="list-group list-group-flush">
+                    {% for event in recent_events %}
+                    <a href="{% url 'audits:event_detail' event.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ event.get_system_display }} ({{ event.get_direction_display }})</h6>
+                            <small>
+                                {% if event.status == 'processed' %}
+                                <span class="badge bg-success">✓</span>
+                                {% elif event.status == 'failed' %}
+                                <span class="badge bg-danger">✗</span>
+                                {% else %}
+                                <span class="badge bg-warning">⋯</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        <p class="mb-1 small">{{ event.external_id }}</p>
+                        <small class="text-muted">{{ event.created_at|timesince }} ago</small>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-center text-muted p-3">Aucun événement récent</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'audits:event_list' %}" class="btn btn-sm btn-outline-primary">
+                    Voir tous les événements
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Audit Logs -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> Logs d'audit récents</h5>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_logs %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Modèle</th>
+                                <th>Objet</th>
+                                <th>Utilisateur</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td>
+                                    {% if log.action == 'create' %}
+                                    <span class="badge bg-success">{{ log.get_action_display }}</span>
+                                    {% elif log.action == 'update' %}
+                                    <span class="badge bg-primary">{{ log.get_action_display }}</span>
+                                    {% elif log.action == 'delete' %}
+                                    <span class="badge bg-danger">{{ log.get_action_display }}</span>
+                                    {% else %}
+                                    <span class="badge bg-info">{{ log.get_action_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.model_name }}</td>
+                                <td><code>{{ log.object_id }}</code></td>
+                                <td>{{ log.user|default:"Système" }}</td>
+                                <td>{{ log.created_at|timesince }} ago</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-center text-muted p-3">Aucun log récent</p>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'audits:log_list' %}" class="btn btn-sm btn-outline-secondary">
+                    Voir tous les logs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

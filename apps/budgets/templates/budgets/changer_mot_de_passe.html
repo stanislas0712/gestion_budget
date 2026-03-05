@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Changer mon mot de passe{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <a href="{% url 'budgets:profil' %}" class="btn btn-xero-outline btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Retour au profil
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header border-bottom py-3" style="background: var(--xero-nav);">
+                    <h5 class="mb-0 fw-bold text-white">
+                        <i class="bi bi-key-fill me-2"></i>Changer mon mot de passe
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <p class="text-muted mb-4" style="font-size: 0.85rem;">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Pour des raisons de securite, veuillez entrer votre mot de passe actuel avant de definir un nouveau.
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.old_password.id_for_label }}" class="form-label">
+                                <i class="bi bi-lock me-1"></i>Mot de passe actuel
+                            </label>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    class="form-control {% if form.old_password.errors %}is-invalid{% endif %}"
+                                    id="{{ form.old_password.id_for_label }}"
+                                    name="{{ form.old_password.name }}"
+                                    required
+                                >
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('{{ form.old_password.id_for_label }}', this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.old_password.errors %}
+                            <div class="text-danger small mt-1">{{ form.old_password.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.new_password1.id_for_label }}" class="form-label">
+                                <i class="bi bi-key me-1"></i>Nouveau mot de passe
+                            </label>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    class="form-control {% if form.new_password1.errors %}is-invalid{% endif %}"
+                                    id="{{ form.new_password1.id_for_label }}"
+                                    name="{{ form.new_password1.name }}"
+                                    required
+                                >
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('{{ form.new_password1.id_for_label }}', this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.new_password1.errors %}
+                            <div class="text-danger small mt-1">{{ form.new_password1.errors|first }}</div>
+                            {% endif %}
+                            {% if form.new_password1.help_text %}
+                            <small class="form-text text-muted">{{ form.new_password1.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.new_password2.id_for_label }}" class="form-label">
+                                <i class="bi bi-check-circle me-1"></i>Confirmer le nouveau mot de passe
+                            </label>
+                            <div class="input-group">
+                                <input
+                                    type="password"
+                                    class="form-control {% if form.new_password2.errors %}is-invalid{% endif %}"
+                                    id="{{ form.new_password2.id_for_label }}"
+                                    name="{{ form.new_password2.name }}"
+                                    required
+                                >
+                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('{{ form.new_password2.id_for_label }}', this)" tabindex="-1" title="Afficher/masquer" aria-label="Afficher/masquer">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.new_password2.errors %}
+                            <div class="text-danger small mt-1">{{ form.new_password2.errors|first }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="alert" style="background: #e8f4f8; border: 1px solid var(--xero-teal); color: var(--xero-text);">
+                            <i class="bi bi-lightbulb me-2" style="color: var(--xero-teal);"></i>
+                            <strong>Astuce :</strong> Vous pouvez utiliser un mot de passe simple comme des chiffres (ex: 1234, 2025).
+                            La longueur minimale est de 4 caracteres.
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-xero btn-lg">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                Changer mon mot de passe
+                            </button>
+                            <a href="{% url 'budgets:profil' %}" class="btn btn-xero-outline">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Annuler
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-shield-check me-2" style="color: var(--xero-teal);"></i>Conseils de securite
+                    </h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Choisissez un mot de passe facile a retenir mais difficile a deviner</li>
+                        <li>Vous pouvez utiliser des chiffres uniquement (ex: 2025, 1234)</li>
+                        <li>Ne partagez jamais votre mot de passe avec d'autres personnes</li>
+                        <li>Changez regulierement votre mot de passe</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+}
+</script>
+{% endblock %}

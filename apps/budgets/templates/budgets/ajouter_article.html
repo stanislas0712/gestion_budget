@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-0">
+                <div class="card-header bg-success text-white p-3">
+                    <h4 class="mb-0"><i class="bi bi-cart-plus me-2"></i>Saisie d'un article</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info py-2">
+                        <small><strong>Groupe :</strong> {{ groupe.libelle }}</small><br>
+                        <small><strong>Ligne :</strong> {{ groupe.ligne.libelle }}</small>
+                    </div>
+
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+
+                        <hr>
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'budgets:detail_budget' groupe.ligne.section.budget_parent.id %}" class="btn btn-outline-secondary px-4">Annuler</a>
+                            <button type="submit" class="btn btn-success px-4 text-white">Enregistrer la ligne</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

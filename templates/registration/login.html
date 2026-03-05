@@ -1,0 +1,190 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Plateforme Budgets</title>
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #f4f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .login-topbar {
+            background: #13353b;
+            padding: 14px 24px;
+        }
+        .login-topbar .brand {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.05rem;
+            text-decoration: none;
+            letter-spacing: -0.3px;
+        }
+        .login-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        .login-card {
+            background: #fff;
+            border: 1px solid #dce0e3;
+            border-radius: 6px;
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem 2rem 2rem;
+        }
+        .login-card h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .login-card .subtitle {
+            color: #6b778c;
+            font-size: 0.85rem;
+            margin-bottom: 1.8rem;
+        }
+        .login-card .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #1b2733;
+            margin-bottom: 0.3rem;
+        }
+        .login-card .form-control {
+            border: 1px solid #dce0e3;
+            border-radius: 4px;
+            font-size: 0.88rem;
+            padding: 0.55rem 0.75rem;
+        }
+        .login-card .form-control:focus {
+            border-color: #00b4c5;
+            box-shadow: 0 0 0 2px rgba(0, 180, 197, 0.15);
+        }
+        .btn-login {
+            background: #00b4c5;
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            font-size: 0.88rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            width: 100%;
+        }
+        .btn-login:hover { background: #009dac; color: #fff; }
+        .login-footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #6b778c;
+        }
+        .login-footer a {
+            color: #00b4c5;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .login-footer a:hover { text-decoration: underline; }
+        .alert-login {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #c9372c;
+            border-radius: 4px;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.82rem;
+            margin-bottom: 1.2rem;
+        }
+        .page-footer {
+            border-top: 1px solid #dce0e3;
+            background: #fff;
+            padding: 0.8rem 0;
+            text-align: center;
+        }
+        .page-footer small { color: #6b778c; }
+    </style>
+</head>
+<body>
+    {% if user.is_authenticated %}
+    <script>window.location.href = "{% url 'budgets:dashboard' %}";</script>
+    {% endif %}
+
+    <div class="login-topbar">
+        <span class="brand">Plateforme Budgets</span>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h2>Connexion</h2>
+            <p class="subtitle">Connectez-vous a votre compte</p>
+
+            {% if form.errors %}
+            <div class="alert-login">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                Email ou mot de passe incorrect.
+            </div>
+            {% endif %}
+
+            {% if next %}
+                {% if user.is_authenticated %}
+                <div class="alert-login">
+                    <i class="bi bi-shield-exclamation me-1"></i>
+                    Vous n'avez pas la permission d'acceder a cette page.
+                </div>
+                {% endif %}
+            {% endif %}
+
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="id_username" class="form-label">Email</label>
+                    <input type="email" name="username" class="form-control" id="id_username"
+                           placeholder="Entrez votre email" required autofocus>
+                </div>
+
+                <div class="mb-4">
+                    <label for="id_password" class="form-label">Mot de passe</label>
+                    <div class="input-group">
+                        <input type="password" name="password" class="form-control" id="id_password"
+                               placeholder="Entrez votre mot de passe" required>
+                        <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('id_password', this)" tabindex="-1" title="Afficher/masquer le mot de passe" aria-label="Afficher/masquer le mot de passe">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">Se connecter</button>
+                <input type="hidden" name="next" value="{{ next }}" />
+            </form>
+
+            <div class="login-footer mt-4">
+                Pas encore de compte ? <a href="{% url 'inscription' %}">Creer un compte</a>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <small>Plateforme de Gestion Budgetaire &copy; 2026</small>
+    </footer>
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-0">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-envelope-check display-1 text-success mb-3"></i>
+                    <h3 class="mb-3">Demande enregistree avec succes</h3>
+                    <p class="text-muted mb-4">
+                        Cliquez sur le bouton ci-dessous pour ouvrir votre messagerie et envoyer la demande a l'administrateur.
+                    </p>
+
+                    <a id="mailto-btn" class="btn btn-primary btn-lg mb-3" style="cursor:pointer;">
+                        <i class="bi bi-envelope-fill me-2"></i>Ouvrir ma messagerie
+                    </a>
+
+                    <br>
+                    <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-outline-secondary mt-3">
+                        <i class="bi bi-arrow-left me-1"></i>Retour au budget
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var to = "{{ admin_email_str|escapejs }}";
+    var subject = "{{ sujet_email|escapejs }}";
+    var body = "{{ corps_email|escapejs }}";
+
+    var url = "mailto:" + encodeURIComponent(to)
+            + "?subject=" + encodeURIComponent(subject)
+            + "&body=" + encodeURIComponent(body);
+
+    var btn = document.getElementById('mailto-btn');
+    btn.setAttribute('href', url);
+
+    // Ouvrir automatiquement
+    var link = document.createElement('a');
+    link.href = url;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+})();
+</script>
+{% endblock %}

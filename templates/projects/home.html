@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - Plateforme Budget{% endblock %}
+
+{% block content %}
+  <h1>Plateforme intermédiaire GoodGrants → Django → Odoo</h1>
+  <p>
+    Ce socle centralise la validation, l’enrichissement, le workflow, et prépare l’exécution dans Odoo
+    (conventions & budgets).
+  </p>
+
+  <p>
+    <a href="{% url 'admin:index' %}">Accéder à l’admin</a>
+  </p>
+
+  <hr />
+
+  <h2>HTMX ready</h2>
+  <p>
+    Les écrans de saisie dynamique (budget sections/lines/sublines) seront construits avec HTMX
+    et des vues fines qui appellent des services.
+  </p>
+{% endblock %}
+

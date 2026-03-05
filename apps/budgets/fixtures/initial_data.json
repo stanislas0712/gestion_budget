@@ -1,0 +1,46 @@
+[
+  {
+    "model": "budgets.filiere",
+    "pk": 1,
+    "fields": {
+      "nom": "BTP ET DE L'ECOCONSTRUCTION",
+      "nombre_max_budgets": 2
+    }
+  },
+  {
+    "model": "budgets.filiere",
+    "pk": 2,
+    "fields": {
+      "nom": "LA TRANSFORMATION AGROALIMENTAIRE DURABLE",
+      "nombre_max_budgets": 2
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 2,
+    "fields": {
+      "nom": "Haut-Bassin"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 4,
+    "fields": {
+      "nom": "Kadiogo"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 6,
+    "fields": {
+      "nom": "NANDO"
+    }
+  },
+  {
+    "model": "budgets.localite",
+    "pk": 7,
+    "fields": {
+      "nom": "Guiriko"
+    }
+  }
+]
