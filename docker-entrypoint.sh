@@ -55,6 +55,60 @@ else
     echo "💡 L'application va continuer, mais certaines fonctionnalités peuvent ne pas fonctionner"
 fi
 
+# Copier les templates dans le volume media si nécessaire
+echo "📋 Vérification et copie des templates..."
+# Créer le dossier templates dans media s'il n'existe pas
+mkdir -p /app/media/templates
+
+# Vérifier si les templates sont déjà dans la destination
+if [ -f "/app/media/templates/template_budget.xlsx" ]; then
+    echo "✅ Templates déjà présents dans /app/media/templates"
+else
+    # Chercher les templates dans plusieurs emplacements possibles (ordre de priorité)
+    TEMPLATE_SOURCE=""
+    
+    # 1. Vérifier le bind mount (développement - si le dossier existe localement)
+    if [ -f "/app/media/templates_source/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/media/templates_source"
+        echo "📋 Templates trouvés dans le bind mount (développement)"
+    # 2. Vérifier dans /app/templates_source (copié lors du build Docker pour production)
+    elif [ -f "/app/templates_source/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/templates_source"
+        echo "📋 Templates trouvés dans l'image Docker (production)"
+    # 3. Chercher dans le code source monté (si accessible, non masqué par volume)
+    elif [ -f "/app/media/templates/template_budget.xlsx" ]; then
+        TEMPLATE_SOURCE="/app/media/templates"
+        echo "📋 Templates trouvés dans le code source"
+    # 4. Utiliser la commande Django pour chercher et copier (dernière tentative)
+    else
+        echo "📋 Recherche des templates via la commande Django..."
+        $PYTHON_CMD manage.py copier_templates 2>&1 || {
+            echo "⚠️  Impossible de copier les templates automatiquement"
+            echo "💡 Solutions possibles:"
+            echo "   1. Exécutez: docker-compose exec web python manage.py copier_templates"
+            echo "   2. Ou copiez manuellement: docker cp media/templates/template_budget.xlsx budget_web:/app/media/templates/"
+        }
+        # Vérifier à nouveau après la commande
+        if [ -f "/app/media/templates/template_budget.xlsx" ]; then
+            echo "✅ Templates copiés avec succès"
+            TEMPLATE_SOURCE=""  # Déjà copié, pas besoin de copier à nouveau
+        fi
+    fi
+    
+    # Si on a trouvé une source, copier les fichiers vers la destination
+    if [ -n "$TEMPLATE_SOURCE" ] && [ "$TEMPLATE_SOURCE" != "/app/media/templates" ]; then
+        echo "📋 Copie des templates depuis $TEMPLATE_SOURCE vers /app/media/templates..."
+        if cp -r "$TEMPLATE_SOURCE"/* /app/media/templates/ 2>/dev/null; then
+            echo "✅ Templates copiés avec succès"
+        else
+            echo "⚠️  Erreur lors de la copie, tentative avec la commande Django..."
+            $PYTHON_CMD manage.py copier_templates --source "$TEMPLATE_SOURCE" 2>&1 || {
+                echo "❌ Impossible de copier les templates"
+            }
+        fi
+    fi
+fi
+
 # Ne pas réactiver set -e ici pour permettre la création du superutilisateur même en cas d'erreur mineure
 # set -e sera réactivé juste avant l'exécution de la commande finale
 
@@ -62,6 +116,79 @@ fi
 if echo "$@" | grep -q "gunicorn"; then
     echo "📁 Collecte des fichiers statiques..."
     $PYTHON_CMD manage.py collectstatic --noinput || true
+fi
+
+# S'assurer que les templates sont disponibles dans le volume media
+echo "📄 Vérification des templates dans media/templates..."
+TEMPLATES_DIR="/app/media/templates"
+
+# Créer le répertoire templates s'il n'existe pas
+mkdir -p "$TEMPLATES_DIR"
+
+# Liste des templates à copier
+TEMPLATE_FILES=("template_budget.xlsx" "template_budget.pdf" "template_budget.docx")
+
+# Le code source est monté via .:/app, donc les templates sont à /app/media/templates
+# Mais le volume media_volume peut écraser ce répertoire, donc on doit copier depuis le code source
+# Le code source est accessible car il est monté AVANT le volume media_volume
+
+# Chercher les templates dans plusieurs emplacements possibles
+SOURCE_PATHS=(
+    "/app/media/templates"  # Depuis le code source monté
+)
+
+# Copier les templates depuis le code source si le volume est vide
+for template_file in "${TEMPLATE_FILES[@]}"; do
+    dest_file="$TEMPLATES_DIR/$template_file"
+    
+    # Si le fichier de destination existe déjà et n'est pas vide, on le garde
+    if [ -f "$dest_file" ]; then
+        size=$(stat -c%s "$dest_file" 2>/dev/null || echo "0")
+        if [ "$size" -gt 0 ]; then
+            echo "   ✅ Template $template_file existe déjà (${size} bytes)"
+            continue
+        fi
+    fi
+    
+    # Chercher le fichier source dans les emplacements possibles
+    source_found=false
+    for source_path in "${SOURCE_PATHS[@]}"; do
+        source_file="$source_path/$template_file"
+        if [ -f "$source_file" ]; then
+            echo "   📄 Copie du template: $template_file depuis $source_path"
+            cp -f "$source_file" "$dest_file"
+            chmod 644 "$dest_file" 2>/dev/null || true
+            source_found=true
+            break
+        fi
+    done
+    
+    if [ "$source_found" = false ]; then
+        echo "   ⚠️  Template source non trouvé: $template_file"
+        echo "      Recherché dans: ${SOURCE_PATHS[*]}"
+    fi
+done
+
+# Vérifier que les templates sont bien présents
+echo "📋 Vérification finale des templates:"
+all_present=true
+for template_file in "${TEMPLATE_FILES[@]}"; do
+    if [ -f "$TEMPLATES_DIR/$template_file" ]; then
+        size=$(stat -c%s "$TEMPLATES_DIR/$template_file" 2>/dev/null || echo "0")
+        if [ "$size" -gt 0 ]; then
+            echo "   ✅ $template_file (${size} bytes)"
+        else
+            echo "   ⚠️  $template_file existe mais est vide"
+            all_present=false
+        fi
+    else
+        echo "   ❌ $template_file manquant"
+        all_present=false
+    fi
+done
+
+if [ "$all_present" = false ]; then
+    echo "   ⚠️  Certains templates sont manquants. Utilisez copy-templates-to-volume.sh pour les copier manuellement."
 fi
 
 # Créer un superutilisateur si les variables d'environnement sont définies
@@ -105,9 +232,9 @@ fi
 # Créer un superutilisateur par défaut si aucun superutilisateur n'existe (fallback)
 echo "👤 Vérification et création du superutilisateur..."
 # Utiliser les variables d'environnement si disponibles, sinon valeurs par défaut
-DEFAULT_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin}
-DEFAULT_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-DEFAULT_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-admin123}
+DEFAULT_USERNAME=${DJANGO_SUPERUSER_USERNAME:-Benkadibaara}
+DEFAULT_EMAIL=${DJANGO_SUPERUSER_EMAIL:-rapenegsama@gmail.com}
+DEFAULT_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-P@ssw0rd75675420}
 
 $PYTHON_CMD manage.py shell << EOF || true
 from django.contrib.auth import get_user_model

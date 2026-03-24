@@ -16,16 +16,58 @@ if DOMAIN_NAME:
     if f"www.{DOMAIN_NAME}" not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(f"www.{DOMAIN_NAME}")
 
+# Toujours ajouter localhost, 127.0.0.1, 0.0.0.0 pour les accès locaux et Docker
 if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0"]
+    ALLOWED_HOSTS = []
+    
+# Ajouter les hôtes par défaut s'ils ne sont pas déjà présents
+default_hosts = ["localhost", "127.0.0.1", "0.0.0.0"]
+for host in default_hosts:
+    if host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(host)
+
+# Ajouter l'IP du serveur depuis les variables d'environnement si disponible
+# Cela évite l'erreur "Invalid HTTP_HOST header: '51.20.216.98:8000'"
+# Note: Django extrait automatiquement l'IP du header Host (sans le port)
+SERVER_IP = os.environ.get("SERVER_IP", "")
+if SERVER_IP and SERVER_IP not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(SERVER_IP)
 
 # Désactiver les redirections HTTPS si pas de proxy SSL (pour Docker en développement)
-# En production avec Nginx/SSL, ces valeurs doivent être True
+# En production avec Nginx/SSL, Nginx gère la redirection HTTP → HTTPS
+# Donc on désactive SECURE_SSL_REDIRECT pour éviter les boucles de redirection
 USE_SSL = os.environ.get("DJANGO_USE_SSL", "false").lower() in {"true", "1", "yes"}
 
+# Configuration CSRF pour la production avec reverse proxy (Nginx)
+# IMPORTANT: Django 4.0+ nécessite CSRF_TRUSTED_ORIGINS pour les requêtes HTTPS
+CSRF_TRUSTED_ORIGINS = []
+if DOMAIN_NAME:
+    # Ajouter le domaine avec HTTPS
+    CSRF_TRUSTED_ORIGINS.append(f"https://{DOMAIN_NAME}")
+    CSRF_TRUSTED_ORIGINS.append(f"https://www.{DOMAIN_NAME}")
+    # Ajouter aussi HTTP pour les redirections (si nécessaire)
+    CSRF_TRUSTED_ORIGINS.append(f"http://{DOMAIN_NAME}")
+    CSRF_TRUSTED_ORIGINS.append(f"http://www.{DOMAIN_NAME}")
+
+# Ajouter l'IP du serveur si disponible (pour les tests)
+SERVER_IP = os.environ.get("SERVER_IP", "")
+if SERVER_IP:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{SERVER_IP}")
+    CSRF_TRUSTED_ORIGINS.append(f"http://{SERVER_IP}")
+
+# Configuration des cookies CSRF et Session
 CSRF_COOKIE_SECURE = USE_SSL
+CSRF_COOKIE_HTTPONLY = False  # Doit être False pour que JavaScript puisse lire le token
+CSRF_USE_SESSIONS = False  # Utiliser les cookies CSRF (par défaut)
+CSRF_COOKIE_SAMESITE = 'Lax'  # Protection CSRF moderne
+
 SESSION_COOKIE_SECURE = USE_SSL
-SECURE_SSL_REDIRECT = USE_SSL
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# IMPORTANT: Désactiver SECURE_SSL_REDIRECT car Nginx gère déjà la redirection
+# Sinon il y aura une double redirection (Nginx → HTTPS, puis Django → HTTPS)
+SECURE_SSL_REDIRECT = False  # Nginx gère la redirection HTTP → HTTPS
 if USE_SSL:
     SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True

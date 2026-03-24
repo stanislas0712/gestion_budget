@@ -149,17 +149,12 @@
         <div class="modal-content">
             <form method="post" action="{% url 'budgets:modifier_budget' budget.uuid %}" novalidate>
                 {% csrf_token %}
-<<<<<<< HEAD
                 <div class="modal-header modal-header-nav">
-=======
-                <div class="modal-header" style="background: var(--xero-nav);">
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
                     <h5 class="modal-title text-white"><i class="bi bi-pencil-square me-2"></i>Modifier le budget</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     {% if modifier_form.errors %}
-<<<<<<< HEAD
                     <div class="alert alert-danger py-2"><i class="bi bi-exclamation-circle me-1"></i>Veuillez corriger les champs ci-dessous.</div>
                     {% endif %}
                     <div class="row">
@@ -192,18 +187,6 @@
                             {% else %}
                                 <div class="text-muted small mt-1">Minimum 50 apprenants</div>
                             {% endif %}
-=======
-                    <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-1"></i>Veuillez verifier les champs ci-dessous.</div>
-                    {% endif %}
-                    <div class="row">
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Titre du Projet <span class="text-danger">*</span></label>
-                            {{ modifier_form.titre_projet }}
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Nombre d'apprenants <span class="text-danger">*</span></label>
-                            {{ modifier_form.total_apprenants }}
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
                         </div>
                     </div>
                 </div>
@@ -222,11 +205,7 @@
 <div class="modal fade" id="modalSoumettre" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-<<<<<<< HEAD
             <div class="modal-header modal-header-nav">
-=======
-            <div class="modal-header" style="background: var(--xero-nav);">
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
                 <h5 class="modal-title text-white"><i class="bi bi-send me-2"></i>Soumettre le budget</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>

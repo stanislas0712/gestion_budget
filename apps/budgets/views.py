@@ -1,7 +1,8 @@
 import threading
+from pathlib import Path
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
@@ -199,15 +200,10 @@ def budget_dashboard(request):
     is_admin = request.user.is_staff or request.user.is_superuser
     has_filters = query or filtre_appel or filtre_filiere or filtre_localite
 
-<<<<<<< HEAD
     if request.user.is_superuser:
         budgets = InfosBudget.objects.all()
     elif request.user.is_staff:
         budgets = InfosBudget.objects.exclude(statut='brouillon')
-=======
-    if is_admin:
-        budgets = InfosBudget.objects.all()
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     else:
         budgets = InfosBudget.objects.filter(created_by=request.user)
 
@@ -281,10 +277,7 @@ def budget_dashboard(request):
         'filtre_appel': filtre_appel,
         'filtre_filiere': filtre_filiere,
         'filtre_localite': filtre_localite,
-<<<<<<< HEAD
         'filtre_statut': request.GET.get('statut', ''),
-=======
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         'budget_form': budget_form,
     })
 
@@ -1044,7 +1037,6 @@ def soumettre_budget(request, uuid):
         messages.error(request, "Ce budget ne peut pas être soumis dans son état actuel.")
         return redirect('budgets:budget_detail', uuid=uuid)
 
-<<<<<<< HEAD
     # Règle 1 & 2 — budget vide ou en-têtes incomplets
     valide, erreur = budget.verifier_completude()
     if not valide:
@@ -1052,11 +1044,6 @@ def soumettre_budget(request, uuid):
         return redirect('budgets:budget_detail', uuid=uuid)
 
     # Règle 3 — A.1 ne doit pas dépasser 30 %
-=======
-    # Recalculer la synthèse et vérifier la règle des 30% pour A.1
-    budget.calculer_synthese()
-    budget.refresh_from_db()
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     valide, erreur = budget.verifier_validation_a1()
     if not valide:
         messages.error(request, erreur)
@@ -1229,11 +1216,11 @@ def preview_email_modification(request):
 @login_required
 def telecharger_template(request, format):
     """Télécharge un template vierge (Excel, PDF ou Word) pour s'exercer"""
+    import logging
     import os
     from django.conf import settings
     
-    # Définir les chemins des templates
-    templates_dir = os.path.join(settings.MEDIA_ROOT, 'templates')
+    logger = logging.getLogger(__name__)
     
     # Mapping des formats vers les fichiers
     fichiers = {
@@ -1243,19 +1230,49 @@ def telecharger_template(request, format):
     }
     
     if format not in fichiers:
+        logger.warning(f"Format invalide demandé: {format}")
         messages.error(request, "Format de fichier invalide.")
         return redirect('budgets:dashboard')
     
-    fichier_path = os.path.join(templates_dir, fichiers[format])
+    # Chercher le fichier dans plusieurs emplacements possibles (pour Docker et développement)
+    emplacements_possibles = [
+        Path(settings.MEDIA_ROOT) / 'templates',  # Emplacement standard
+        Path(settings.BASE_DIR) / 'media' / 'templates',  # Alternative
+        Path(settings.MEDIA_ROOT),  # Directement dans media
+    ]
+    
+    fichier_trouve = None
+    for emplacement in emplacements_possibles:
+        chemin_test = emplacement / fichiers[format]
+        if chemin_test.exists() and chemin_test.is_file():
+            fichier_trouve = chemin_test
+            break
+    
+    # Logging détaillé pour le diagnostic
+    logger.info(f"🔍 Tentative de téléchargement du template: {format}")
+    logger.info(f"   MEDIA_ROOT: {settings.MEDIA_ROOT}")
+    logger.info(f"   BASE_DIR: {settings.BASE_DIR}")
+    for emplacement in emplacements_possibles:
+        chemin_test = emplacement / fichiers[format]
+        logger.info(f"   Testé: {chemin_test} -> Existe: {chemin_test.exists()}")
     
     # Vérifier si le fichier existe
-    if not os.path.exists(fichier_path):
-        messages.warning(request, f"Le template {format.upper()} n'est pas encore disponible. Veuillez contacter l'administrateur.")
+    if not fichier_trouve:
+        logger.error(f"❌ Fichier template non trouvé: {fichiers[format]}")
+        messages.warning(
+            request, 
+            f"Le template {format.upper()} n'est pas encore disponible. "
+            f"Veuillez contacter l'administrateur."
+        )
         return redirect('budgets:dashboard')
     
-    # Préparer la réponse de téléchargement
-    with open(fichier_path, 'rb') as f:
-        response = HttpResponse(f.read())
+    fichier_path = fichier_trouve
+    
+    # Vérifier les permissions de lecture
+    if not os.access(fichier_path, os.R_OK):
+        logger.error(f"❌ Permission de lecture refusée pour: {fichier_path}")
+        messages.error(request, "Erreur de permission lors de l'accès au fichier.")
+        return redirect('budgets:dashboard')
     
     # Définir le type de contenu selon le format
     content_types = {
@@ -1263,12 +1280,12 @@ def telecharger_template(request, format):
         'pdf': 'application/pdf',
         'word': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     }
-    
+
+    with open(fichier_path, 'rb') as f:
+        response = HttpResponse(f.read())
     response['Content-Type'] = content_types[format]
     response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
-    
     return response
-<<<<<<< HEAD
 
 
 @login_required
@@ -1335,5 +1352,3 @@ def recherche_budgets(request):
         'filtre_statut': filtre_statut,
         'is_admin': is_admin,
     })
-=======
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2

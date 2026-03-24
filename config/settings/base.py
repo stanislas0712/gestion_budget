@@ -97,14 +97,11 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "0") in {"1", "true", "True", "yes"}
 allowed_hosts = os.environ.get("DJANGO_ALLOWED_HOSTS", "")
 ALLOWED_HOSTS = [h.strip() for h in allowed_hosts.split(",") if h.strip()]
 
-<<<<<<< HEAD
 from django.contrib.messages import constants as message_constants
 MESSAGE_TAGS = {
     message_constants.ERROR: 'danger',
 }
 
-=======
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
 INSTALLED_APPS = [
     # Django core
     "jazzmin",
@@ -312,11 +309,6 @@ JAZZMIN_UI_TWEAKS = {
 
 # Email configuration - Brevo SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-<<<<<<< HEAD
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-=======
->>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp-relay.brevo.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = True

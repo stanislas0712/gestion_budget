@@ -51,6 +51,11 @@ services:
       - .:/app
       - static_volume:/app/staticfiles
       - media_volume:/app/media
+      # Bind mount optionnel pour les templates en développement
+      # Si le dossier ./media/templates existe localement, il sera monté
+      # En production, les templates seront copiés depuis l'image Docker au démarrage
+      # Note: Docker Compose ignore ce mount si le chemin source n'existe pas
+      - ./media/templates:/app/media/templates_source:ro
     ports:
       - 8000:8000
     env_file:
@@ -125,28 +130,7 @@ services:
       - budget_network
     restart: unless-stopped
 
-  # Nginx (optionnel, pour production)
-  nginx:
-    image: nginx:alpine
-    container_name: budget_nginx
-    ports:
-      - "${NGINX_PORT:-80}:80"
-      - "${NGINX_SSL_PORT:-443}:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx-ssl.conf:/etc/nginx/nginx-ssl.conf:ro
-      - static_volume:/static:ro
-      - media_volume:/media:ro
-      # Volumes pour Let's Encrypt
-      - ./certbot/conf:/etc/letsencrypt:ro
-      - ./certbot/www:/var/www/certbot:ro
-    depends_on:
-      - web
-    networks:
-      - budget_network
-    restart: unless-stopped
-    profiles:
-      - production
+
 
 volumes:
   postgres_data:
