@@ -199,10 +199,15 @@ def budget_dashboard(request):
     is_admin = request.user.is_staff or request.user.is_superuser
     has_filters = query or filtre_appel or filtre_filiere or filtre_localite
 
+<<<<<<< HEAD
     if request.user.is_superuser:
         budgets = InfosBudget.objects.all()
     elif request.user.is_staff:
         budgets = InfosBudget.objects.exclude(statut='brouillon')
+=======
+    if is_admin:
+        budgets = InfosBudget.objects.all()
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     else:
         budgets = InfosBudget.objects.filter(created_by=request.user)
 
@@ -276,7 +281,10 @@ def budget_dashboard(request):
         'filtre_appel': filtre_appel,
         'filtre_filiere': filtre_filiere,
         'filtre_localite': filtre_localite,
+<<<<<<< HEAD
         'filtre_statut': request.GET.get('statut', ''),
+=======
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         'budget_form': budget_form,
     })
 
@@ -1036,6 +1044,7 @@ def soumettre_budget(request, uuid):
         messages.error(request, "Ce budget ne peut pas être soumis dans son état actuel.")
         return redirect('budgets:budget_detail', uuid=uuid)
 
+<<<<<<< HEAD
     # Règle 1 & 2 — budget vide ou en-têtes incomplets
     valide, erreur = budget.verifier_completude()
     if not valide:
@@ -1043,6 +1052,11 @@ def soumettre_budget(request, uuid):
         return redirect('budgets:budget_detail', uuid=uuid)
 
     # Règle 3 — A.1 ne doit pas dépasser 30 %
+=======
+    # Recalculer la synthèse et vérifier la règle des 30% pour A.1
+    budget.calculer_synthese()
+    budget.refresh_from_db()
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     valide, erreur = budget.verifier_validation_a1()
     if not valide:
         messages.error(request, erreur)
@@ -1254,6 +1268,7 @@ def telecharger_template(request, format):
     response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
     
     return response
+<<<<<<< HEAD
 
 
 @login_required
@@ -1320,3 +1335,5 @@ def recherche_budgets(request):
         'filtre_statut': filtre_statut,
         'is_admin': is_admin,
     })
+=======
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2

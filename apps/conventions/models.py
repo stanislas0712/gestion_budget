@@ -11,6 +11,7 @@ class Convention(models.Model):
         SENT_TO_ODOO = "sent_to_odoo", "Envoyée à Odoo"
 
     project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name="convention")
+<<<<<<< HEAD
     budget = models.OneToOneField(
         'budgets.InfosBudget',
         on_delete=models.SET_NULL,
@@ -22,6 +23,10 @@ class Convention(models.Model):
     reference = models.CharField(max_length=100, unique=True, verbose_name="Numéro de la convention")
     date_signature = models.DateField(null=True, blank=True, verbose_name="Date de signature")
     dure_convention = models.PositiveIntegerField(null=True, blank=True, verbose_name="Durée de la convention (en mois)") 
+=======
+
+    reference = models.CharField(max_length=100, unique=True)
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     start_date = models.DateField()
     end_date = models.DateField()
 
@@ -46,6 +51,7 @@ class Convention(models.Model):
         ]
 
     @property
+<<<<<<< HEAD
     def montant(self):
         """Montant de la convention (budget demandé global du budget lié)"""
         if self.budget:
@@ -60,6 +66,8 @@ class Convention(models.Model):
         return None
 
     @property
+=======
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     def is_editable(self) -> bool:
         return self.status == self.Status.DRAFT
 

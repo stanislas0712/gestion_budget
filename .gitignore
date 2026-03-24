@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .venv/
 __pycache__/
 *.pyc
@@ -13,3 +14,7 @@ certbot/
 *.key
 *.crt
 *.csr".env" 
+=======
+.env 
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
+".env" 

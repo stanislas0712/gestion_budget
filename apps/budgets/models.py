@@ -3,7 +3,10 @@ import uuid
 from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
+<<<<<<< HEAD
 from django.core.validators import MinValueValidator
+=======
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
 from django.contrib.auth.models import User
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
@@ -81,11 +84,15 @@ class InfosBudget(models.Model):
     metier = models.ForeignKey(Metier, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Métier", related_name="budgets")
     localite = models.ForeignKey(Localite, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Localité", related_name="budgets")
 
+<<<<<<< HEAD
     total_apprenants = models.PositiveIntegerField(
         default=1,
         verbose_name="Effectif total apprenants",
         validators=[MinValueValidator(50, message="Le nombre d'apprenants doit être d'au moins 50.")]
     )
+=======
+    total_apprenants = models.PositiveIntegerField(default=1, verbose_name="Effectif total apprenants")
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     nombre_sessions = models.PositiveIntegerField(default=1, verbose_name="Nombre de sessions")
 
     # Gestion du workflow
@@ -189,6 +196,7 @@ class InfosBudget(models.Model):
             return False, f"ERREUR : A.1 représente {self.pourcentage_a1:.1f}% du budget demandé (maximum autorisé : 30%)"
         return True, None
 
+<<<<<<< HEAD
     def verifier_completude(self):
         """Vérifie que le budget est complet avant soumission.
 
@@ -225,6 +233,8 @@ class InfosBudget(models.Model):
 
         return True, ""
 
+=======
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
     def initialiser_structure(self):
         """Initialise la structure budgétaire si elle n'existe pas"""
         if not self.sections.exists():

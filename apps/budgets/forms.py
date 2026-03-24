@@ -73,7 +73,11 @@ class InfosBudgetCreationForm(forms.ModelForm):
             'appel_a_projet': forms.Select(attrs={'class': 'form-control'}),
             'operateur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom de l'opérateur"}),
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+<<<<<<< HEAD
             'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '50'}),
+=======
+            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '25'}),
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         }
 
     def __init__(self, *args, **kwargs):
@@ -109,8 +113,13 @@ class InfosBudgetCreationForm(forms.ModelForm):
 
     def clean_total_apprenants(self):
         total = self.cleaned_data.get('total_apprenants')
+<<<<<<< HEAD
         if total is not None and total < 50:
             raise forms.ValidationError("Le nombre d'apprenants doit être d'au moins 50.")
+=======
+        if total is not None and total < 25:
+            raise forms.ValidationError("Le nombre minimum d'apprenants est de 25.")
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         return total
 
     def clean_filiere(self):
@@ -125,6 +134,7 @@ class InfosBudgetCreationForm(forms.ModelForm):
 
 
 class InfosBudgetForm(forms.ModelForm):
+<<<<<<< HEAD
     """Formulaire de modification d'un budget."""
     class Meta:
         model = InfosBudget
@@ -134,12 +144,26 @@ class InfosBudgetForm(forms.ModelForm):
             'operateur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom de l'opérateur"}),
             'filiere': forms.Select(attrs={'class': 'form-select'}),
             'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '50'}),
+=======
+    """Formulaire simplifie pour la modification d'un budget (memes champs que creation)."""
+    class Meta:
+        model = InfosBudget
+        fields = ['titre_projet', 'total_apprenants']
+        widgets = {
+            'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '25'}),
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         }
 
     def clean_total_apprenants(self):
         total = self.cleaned_data.get('total_apprenants')
+<<<<<<< HEAD
         if total is not None and total < 50:
             raise forms.ValidationError("Le nombre d'apprenants doit être d'au moins 50.")
+=======
+        if total is not None and total < 25:
+            raise forms.ValidationError("Le nombre minimum d'apprenants est de 25.")
+>>>>>>> 052578e1e8b11c61f5334ebd3f068aefcfadd3b2
         return total
 
 class SousLigneArticleForm(forms.ModelForm):
