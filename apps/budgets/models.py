@@ -3,6 +3,7 @@ import uuid
 from decimal import Decimal
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
@@ -80,7 +81,11 @@ class InfosBudget(models.Model):
     metier = models.ForeignKey(Metier, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Métier", related_name="budgets")
     localite = models.ForeignKey(Localite, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Localité", related_name="budgets")
 
-    total_apprenants = models.PositiveIntegerField(default=1, verbose_name="Effectif total apprenants")
+    total_apprenants = models.PositiveIntegerField(
+        default=1,
+        verbose_name="Effectif total apprenants",
+        validators=[MinValueValidator(50, message="Le nombre d'apprenants doit être d'au moins 50.")]
+    )
     nombre_sessions = models.PositiveIntegerField(default=1, verbose_name="Nombre de sessions")
 
     # Gestion du workflow
@@ -183,6 +188,42 @@ class InfosBudget(models.Model):
         if self.budget_demande_global > 0 and self.pourcentage_a1 > 30:
             return False, f"ERREUR : A.1 représente {self.pourcentage_a1:.1f}% du budget demandé (maximum autorisé : 30%)"
         return True, None
+
+    def verifier_completude(self):
+        """Vérifie que le budget est complet avant soumission.
+
+        Règle 1 : le total doit être > 0 (au moins une ligne renseignée).
+        Règle 2 : tous les champs d'en-tête obligatoires doivent être remplis.
+
+        Retourne (True, "") si valide, (False, "message d'erreur") sinon.
+        """
+        # Recalculer pour avoir le total à jour
+        self.calculer_synthese()
+        self.refresh_from_db()
+
+        # Règle 1 — budget vide
+        if not self.cout_total_global or self.cout_total_global <= 0:
+            return False, (
+                "Vous ne pouvez pas soumettre un budget vide. "
+                "Veuillez renseigner au moins une ligne budgétaire."
+            )
+
+        # Règle 2 — champs obligatoires
+        champs_requis = {
+            "titre du projet": self.titre_projet,
+            "opérateur": self.operateur,
+            "filière": self.filiere_id,
+            "localité": self.localite_id,
+            "métier": self.metier_id,
+            "appel à projet": self.appel_a_projet_id,
+            "nombre d'apprenants": self.total_apprenants,
+        }
+        manquants = [label for label, valeur in champs_requis.items() if not valeur]
+        if manquants:
+            liste = ", ".join(manquants)
+            return False, f"Champs obligatoires manquants : {liste}."
+
+        return True, ""
 
     def initialiser_structure(self):
         """Initialise la structure budgétaire si elle n'existe pas"""

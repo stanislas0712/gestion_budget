@@ -12,4 +12,4 @@ certbot/
 *.pem
 *.key
 *.crt
-*.csr
+*.csr".env" 

@@ -199,8 +199,10 @@ def budget_dashboard(request):
     is_admin = request.user.is_staff or request.user.is_superuser
     has_filters = query or filtre_appel or filtre_filiere or filtre_localite
 
-    if is_admin:
+    if request.user.is_superuser:
         budgets = InfosBudget.objects.all()
+    elif request.user.is_staff:
+        budgets = InfosBudget.objects.exclude(statut='brouillon')
     else:
         budgets = InfosBudget.objects.filter(created_by=request.user)
 
@@ -274,6 +276,7 @@ def budget_dashboard(request):
         'filtre_appel': filtre_appel,
         'filtre_filiere': filtre_filiere,
         'filtre_localite': filtre_localite,
+        'filtre_statut': request.GET.get('statut', ''),
         'budget_form': budget_form,
     })
 
@@ -1033,9 +1036,13 @@ def soumettre_budget(request, uuid):
         messages.error(request, "Ce budget ne peut pas être soumis dans son état actuel.")
         return redirect('budgets:budget_detail', uuid=uuid)
 
-    # Recalculer la synthèse et vérifier la règle des 30% pour A.1
-    budget.calculer_synthese()
-    budget.refresh_from_db()
+    # Règle 1 & 2 — budget vide ou en-têtes incomplets
+    valide, erreur = budget.verifier_completude()
+    if not valide:
+        messages.error(request, erreur)
+        return redirect('budgets:budget_detail', uuid=uuid)
+
+    # Règle 3 — A.1 ne doit pas dépasser 30 %
     valide, erreur = budget.verifier_validation_a1()
     if not valide:
         messages.error(request, erreur)
@@ -1247,3 +1254,69 @@ def telecharger_template(request, format):
     response['Content-Disposition'] = f'attachment; filename="{fichiers[format]}"'
     
     return response
+
+
+@login_required
+def recherche_budgets(request):
+    """Vue partielle HTMX pour la recherche live de budgets"""
+    from .models import Filiere
+    from django.core.paginator import Paginator
+
+    query = request.GET.get('q', '').strip()
+    filtre_appel = request.GET.get('appel', '').strip()
+    filtre_filiere = request.GET.get('filiere', '').strip()
+    filtre_statut = request.GET.get('statut', '').strip()
+    is_admin = request.user.is_staff or request.user.is_superuser
+
+    if request.user.is_superuser:
+        budgets = InfosBudget.objects.all()
+    elif request.user.is_staff:
+        budgets = InfosBudget.objects.exclude(statut='brouillon')
+    else:
+        budgets = InfosBudget.objects.filter(created_by=request.user)
+
+    # Recherche texte : seulement à partir de 3 caractères
+    if query and len(query) >= 3:
+        budgets = budgets.filter(
+            Q(titre_projet__icontains=query) |
+            Q(operateur__icontains=query) |
+            Q(filiere__nom__icontains=query) |
+            Q(localite__nom__icontains=query) |
+            Q(metier__nom__icontains=query)
+        )
+
+    # Filtres selects
+    if filtre_appel:
+        budgets = budgets.filter(appel_a_projet_id=filtre_appel)
+    if filtre_filiere:
+        budgets = budgets.filter(filiere_id=filtre_filiere)
+    if filtre_statut:
+        budgets = budgets.filter(statut=filtre_statut)
+
+    budgets = budgets.order_by('-id')
+    paginator = Paginator(budgets, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # Regrouper par filière pour les opérateurs
+    budgets_par_filiere = []
+    if not is_admin:
+        filieres_ids = budgets.values_list('filiere_id', flat=True).distinct()
+        for filiere in Filiere.objects.filter(id__in=filieres_ids).order_by('nom'):
+            budgets_par_filiere.append({
+                'filiere': filiere,
+                'budgets': budgets.filter(filiere=filiere),
+            })
+        budgets_sans = budgets.filter(filiere__isnull=True)
+        if budgets_sans.exists():
+            budgets_par_filiere.append({'filiere': None, 'budgets': budgets_sans})
+
+    return render(request, 'partials/budgets_liste.html', {
+        'budgets': page_obj,
+        'page_obj': page_obj,
+        'budgets_par_filiere': budgets_par_filiere,
+        'query': query,
+        'filtre_appel': filtre_appel,
+        'filtre_filiere': filtre_filiere,
+        'filtre_statut': filtre_statut,
+        'is_admin': is_admin,
+    })

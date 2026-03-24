@@ -73,7 +73,7 @@ class InfosBudgetCreationForm(forms.ModelForm):
             'appel_a_projet': forms.Select(attrs={'class': 'form-control'}),
             'operateur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom de l'opérateur"}),
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
-            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '25'}),
+            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '50'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -109,8 +109,8 @@ class InfosBudgetCreationForm(forms.ModelForm):
 
     def clean_total_apprenants(self):
         total = self.cleaned_data.get('total_apprenants')
-        if total is not None and total < 25:
-            raise forms.ValidationError("Le nombre minimum d'apprenants est de 25.")
+        if total is not None and total < 50:
+            raise forms.ValidationError("Le nombre d'apprenants doit être d'au moins 50.")
         return total
 
     def clean_filiere(self):
@@ -125,19 +125,21 @@ class InfosBudgetCreationForm(forms.ModelForm):
 
 
 class InfosBudgetForm(forms.ModelForm):
-    """Formulaire simplifie pour la modification d'un budget (memes champs que creation)."""
+    """Formulaire de modification d'un budget."""
     class Meta:
         model = InfosBudget
-        fields = ['titre_projet', 'total_apprenants']
+        fields = ['titre_projet', 'operateur', 'filiere', 'total_apprenants']
         widgets = {
             'titre_projet': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
-            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '25'}),
+            'operateur': forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Nom de l'opérateur"}),
+            'filiere': forms.Select(attrs={'class': 'form-select'}),
+            'total_apprenants': forms.NumberInput(attrs={'class': 'form-control', 'min': '50'}),
         }
 
     def clean_total_apprenants(self):
         total = self.cleaned_data.get('total_apprenants')
-        if total is not None and total < 25:
-            raise forms.ValidationError("Le nombre minimum d'apprenants est de 25.")
+        if total is not None and total < 50:
+            raise forms.ValidationError("Le nombre d'apprenants doit être d'au moins 50.")
         return total
 
 class SousLigneArticleForm(forms.ModelForm):

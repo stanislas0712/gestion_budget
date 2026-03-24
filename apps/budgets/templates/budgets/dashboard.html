@@ -54,10 +54,23 @@
 
     {% if is_admin %}
     <div class="mb-4 mt-3">
-        <form method="GET" action="">
+        <form method="GET" action="" id="filter-form">
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md">
-                    <input type="text" name="q" class="form-control" placeholder="Rechercher par titre, operateur..." value="{{ request.GET.q }}">
+                    <div class="input-group">
+                        <input type="text" name="q" id="search-input" class="form-control"
+                               placeholder="Rechercher par titre, operateur... (3 car. min)"
+                               value="{{ request.GET.q }}"
+                               autocomplete="off"
+                               hx-get="{% url 'budgets:recherche_budgets' %}"
+                               hx-trigger="input changed delay:400ms"
+                               hx-target="#budget-list-container"
+                               hx-include="#filter-form"
+                               hx-indicator="#search-spinner">
+                        <span id="search-spinner" class="input-group-text htmx-indicator border-start-0 bg-transparent">
+                            <span class="spinner-border spinner-border-sm text-muted" role="status" aria-hidden="true"></span>
+                        </span>
+                    </div>
                 </div>
                 <div class="col-12 col-md">
                     <select name="appel" class="form-select" title="Filtrer par appel a projet">
@@ -75,8 +88,21 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="col-12 col-md">
+                    <select name="statut" class="form-select" title="Filtrer par statut">
+                        <option value="">Statut</option>
+                        <option value="brouillon" {% if request.GET.statut == 'brouillon' %}selected{% endif %}>Brouillon</option>
+                        <option value="soumis" {% if request.GET.statut == 'soumis' %}selected{% endif %}>Soumis</option>
+                        <option value="modification_autorisee" {% if request.GET.statut == 'modification_autorisee' %}selected{% endif %}>Modification autorisee</option>
+                        <option value="approuve" {% if request.GET.statut == 'approuve' %}selected{% endif %}>Approuve</option>
+                        <option value="rejete" {% if request.GET.statut == 'rejete' %}selected{% endif %}>Rejete</option>
+                    </select>
+                </div>
                 <div class="col-12 col-md-auto d-flex gap-2">
-                    <button type="submit" class="btn btn-xero" title="Filtrer">
+                    <button type="submit" class="btn btn-xero" title="Filtrer"
+                            hx-get="{% url 'budgets:recherche_budgets' %}"
+                            hx-target="#budget-list-container"
+                            hx-include="#filter-form">
                         <i class="bi bi-funnel"></i>
                     </button>
                     <a href="{% url 'budgets:dashboard' %}" class="btn btn-xero-outline" title="Reinitialiser les filtres">
@@ -88,156 +114,9 @@
     </div>
     {% endif %}
 
-    {% if is_admin %}
-    {# ===== VUE ADMIN : liste plate avec pagination ===== #}
-    <div class="row">
-        {% for budget in budgets %}
-        <div class="col-md-6 col-lg-4 mb-4">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h6 class="card-title fw-bold mb-0 text-truncate me-2" title="{{ budget.titre_projet }}">{{ budget.titre_projet|truncatechars:45 }}</h6>
-                        {% if budget.statut == 'brouillon' %}
-                            <span class="badge bg-secondary badge-statut">Brouillon</span>
-                        {% elif budget.statut == 'soumis' %}
-                            <span class="badge bg-primary badge-statut">Soumis</span>
-                        {% elif budget.statut == 'modification_autorisee' %}
-                            <span class="badge bg-warning text-dark badge-statut">Modification</span>
-                        {% elif budget.statut == 'approuve' %}
-                            <span class="badge bg-success badge-statut">Approuve</span>
-                        {% elif budget.statut == 'rejete' %}
-                            <span class="badge bg-danger badge-statut">Rejete</span>
-                        {% endif %}
-                    </div>
-                    <p class="text-muted small mb-3">{{ budget.operateur }}</p>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between mb-1 small">
-                            <span class="text-muted">Cout total</span>
-                            <strong>{{ budget.cout_total_global|floatformat:0|intcomma }} FCFA</strong>
-                        </div>
-                        <div class="d-flex justify-content-between mb-1 small">
-                            <span class="text-muted">Apprenants</span>
-                            <span>{{ budget.total_apprenants }}</span>
-                        </div>
-                        {% if budget.filiere %}
-                        <div class="d-flex justify-content-between mb-1 small">
-                            <span class="text-muted">Filiere</span>
-                            <span>{{ budget.filiere|truncatechars:25 }}</span>
-                        </div>
-                        {% endif %}
-                        {% if budget.appel_a_projet %}
-                        <div class="d-flex justify-content-between mb-1 small">
-                            <span class="text-muted">Appel</span>
-                            <span>{{ budget.appel_a_projet.nom|truncatechars:25 }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-xero-outline btn-sm w-100 mt-3">
-                        Ouvrir
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <div class="col-12 text-center py-5">
-            <p class="text-muted mt-3">Aucun budget trouve</p>
-        </div>
-        {% endfor %}
+    <div id="budget-list-container">
+        {% include "partials/budgets_liste.html" %}
     </div>
-
-    {% if page_obj.paginator.num_pages > 1 %}
-    <nav class="d-flex justify-content-between align-items-center mt-2 mb-4">
-        <small class="text-muted">
-            {{ page_obj.paginator.count }} budget{{ page_obj.paginator.count|pluralize }} au total
-            — Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}
-        </small>
-        <ul class="pagination pagination-sm mb-0">
-            {% if page_obj.has_previous %}
-            <li class="page-item">
-                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.previous_page_number }}">
-                    <i class="bi bi-chevron-left"></i>
-                </a>
-            </li>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-                {% if page_obj.number == num %}
-                <li class="page-item active">
-                    <span class="page-link" style="background: var(--xero-teal); border-color: var(--xero-teal);">{{ num }}</span>
-                </li>
-                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-                <li class="page-item">
-                    <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ num }}">{{ num }}</a>
-                </li>
-                {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-            <li class="page-item">
-                <a class="page-link" href="?{% if query %}q={{ query }}&{% endif %}{% if filtre_appel %}appel={{ filtre_appel }}&{% endif %}{% if filtre_filiere %}filiere={{ filtre_filiere }}&{% endif %}{% if filtre_localite %}localite={{ filtre_localite }}&{% endif %}page={{ page_obj.next_page_number }}">
-                    <i class="bi bi-chevron-right"></i>
-                </a>
-            </li>
-            {% endif %}
-        </ul>
-    </nav>
-    {% endif %}
-
-    {% else %}
-    {# ===== VUE OPERATEUR : budgets groupés par filière ===== #}
-    {% for groupe in budgets_par_filiere %}
-    <div class="mb-4">
-        <div class="d-flex align-items-center mb-3">
-            <i class="bi bi-mortarboard-fill me-2" style="color: var(--xero-teal);"></i>
-            <h5 class="fw-bold mb-0">{% if groupe.filiere %}{{ groupe.filiere.nom }}{% else %}Sans filière{% endif %}</h5>
-            <span class="badge bg-info ms-2">{{ groupe.budgets|length }} budget{{ groupe.budgets|length|pluralize }}</span>
-        </div>
-        <div class="row">
-            {% for budget in groupe.budgets %}
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="card-title fw-bold mb-0 text-truncate me-2" title="{{ budget.titre_projet }}">{{ budget.titre_projet|truncatechars:45 }}</h6>
-                            {% if budget.statut == 'brouillon' %}
-                                <span class="badge bg-secondary badge-statut">Brouillon</span>
-                            {% elif budget.statut == 'soumis' %}
-                                <span class="badge bg-primary badge-statut">Soumis</span>
-                            {% elif budget.statut == 'modification_autorisee' %}
-                                <span class="badge bg-warning text-dark badge-statut">Modification</span>
-                            {% elif budget.statut == 'approuve' %}
-                                <span class="badge bg-success badge-statut">Approuve</span>
-                            {% elif budget.statut == 'rejete' %}
-                                <span class="badge bg-danger badge-statut">Rejete</span>
-                            {% endif %}
-                        </div>
-                        <p class="text-muted small mb-3">{{ budget.operateur }}</p>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between mb-1 small">
-                                <span class="text-muted">Cout total</span>
-                                <strong>{{ budget.cout_total_global|floatformat:0|intcomma }} FCFA</strong>
-                            </div>
-                            <div class="d-flex justify-content-between mb-1 small">
-                                <span class="text-muted">Apprenants</span>
-                                <span>{{ budget.total_apprenants }}</span>
-                            </div>
-                        </div>
-                        <a href="{% url 'budgets:budget_detail' budget.uuid %}" class="btn btn-xero-outline btn-sm w-100 mt-3">
-                            Ouvrir
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% empty %}
-    <div class="text-center py-5">
-        <i class="bi bi-folder2-open display-4 text-muted"></i>
-        <p class="text-muted mt-3">Vous n'avez pas encore de budgets</p>
-    </div>
-    {% endfor %}
-    {% endif %}
 </div>
 {% if budget_form %}
 <!-- Modal Créer Budget -->
@@ -246,7 +125,7 @@
         <div class="modal-content">
             <form method="post" action="{% url 'budgets:creer_budget' %}" novalidate>
                 {% csrf_token %}
-                <div class="modal-header" style="background: var(--xero-nav);">
+                <div class="modal-header modal-header-nav">
                     <h5 class="modal-title text-white" id="modalCreerBudgetLabel">
                         <i class="bi bi-plus-circle me-2"></i>Nouveau budget
                     </h5>

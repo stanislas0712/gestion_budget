@@ -19,6 +19,7 @@ urlpatterns = [
     path('get-appel-statut/', views.get_appel_statut, name='get_appel_statut'),
     path('get-pourcentage-a1/<uuid:uuid>/', views.get_pourcentage_a1, name='get_pourcentage_a1'),
     path('get-total-section/<int:section_id>/', views.get_total_section, name='get_total_section'),
+    path('recherche/', views.recherche_budgets, name='recherche_budgets'), 
 
     # Exports
     path('export-excel/<uuid:uuid>/', views.export_excel, name='export_excel'),
